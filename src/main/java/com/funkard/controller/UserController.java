@@ -1,7 +1,8 @@
 package com.funkard.controller;
 
+import com.funkard.dto.UserDTO;
 import com.funkard.model.User;
-import com.funkard.repository.UserRepository;
+import com.funkard.service.UserService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -9,24 +10,24 @@ import java.util.List;
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
-    private final UserRepository repo;
+    private final UserService service;
 
-    public UserController(UserRepository repo) {
-        this.repo = repo;
+    public UserController(UserService service) {
+        this.service = service;
     }
 
     @GetMapping
-    public List<User> getAll() {
-        return repo.findAll();
+    public List<UserDTO> getAll() {
+        return service.getAll();
     }
 
     @PostMapping
-    public User create(@RequestBody User user) {
-        return repo.save(user);
+    public UserDTO create(@RequestBody User user) {
+        return service.create(user);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
-        repo.deleteById(id);
+        service.delete(id);
     }
 }

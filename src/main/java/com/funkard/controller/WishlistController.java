@@ -1,7 +1,7 @@
 package com.funkard.controller;
 
 import com.funkard.model.Wishlist;
-import com.funkard.repository.WishlistRepository;
+import com.funkard.service.WishlistService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -9,24 +9,24 @@ import java.util.List;
 @RequestMapping("/api/wishlist")
 @CrossOrigin(origins = "*")
 public class WishlistController {
-    private final WishlistRepository repo;
+    private final WishlistService service;
 
-    public WishlistController(WishlistRepository repo) {
-        this.repo = repo;
+    public WishlistController(WishlistService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Wishlist> getAll() {
-        return repo.findAll();
+        return service.getAll();
     }
 
     @PostMapping
     public Wishlist create(@RequestBody Wishlist wishlist) {
-        return repo.save(wishlist);
+        return service.create(wishlist);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
-        repo.deleteById(id);
+        service.delete(id);
     }
 }

@@ -1,7 +1,7 @@
 package com.funkard.controller;
 
 import com.funkard.model.Card;
-import com.funkard.repository.CardRepository;
+import com.funkard.service.CardService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -9,19 +9,19 @@ import java.util.List;
 @RequestMapping("/api/cards")
 @CrossOrigin(origins = "*")
 public class CardController {
-    private final CardRepository repo;
+    private final CardService service;
 
-    public CardController(CardRepository repo) {
-        this.repo = repo;
+    public CardController(CardService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Card> getAll() {
-        return repo.findAll();
+        return service.getAll();
     }
 
     @PostMapping
     public Card create(@RequestBody Card card) {
-        return repo.save(card);
+        return service.create(card);
     }
 }

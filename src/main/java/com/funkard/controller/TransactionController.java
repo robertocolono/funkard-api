@@ -1,7 +1,7 @@
 package com.funkard.controller;
 
 import com.funkard.model.Transaction;
-import com.funkard.repository.TransactionRepository;
+import com.funkard.service.TransactionService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -9,19 +9,19 @@ import java.util.List;
 @RequestMapping("/api/transactions")
 @CrossOrigin(origins = "*")
 public class TransactionController {
-    private final TransactionRepository repo;
+    private final TransactionService service;
 
-    public TransactionController(TransactionRepository repo) {
-        this.repo = repo;
+    public TransactionController(TransactionService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Transaction> getAll() {
-        return repo.findAll();
+        return service.getAll();
     }
 
     @PostMapping
     public Transaction create(@RequestBody Transaction transaction) {
-        return repo.save(transaction);
+        return service.create(transaction);
     }
 }

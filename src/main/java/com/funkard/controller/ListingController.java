@@ -1,7 +1,7 @@
 package com.funkard.controller;
 
 import com.funkard.model.Listing;
-import com.funkard.repository.ListingRepository;
+import com.funkard.service.ListingService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,19 +11,19 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class ListingController {
 
-    private final ListingRepository listingRepository;
+    private final ListingService service;
 
-    public ListingController(ListingRepository listingRepository) {
-        this.listingRepository = listingRepository;
+    public ListingController(ListingService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Listing> getAllListings() {
-        return listingRepository.findAll();
+        return service.getAll();
     }
 
     @PostMapping
     public Listing create(@RequestBody Listing listing) {
-        return listingRepository.save(listing);
+        return service.create(listing);
     }
 }
