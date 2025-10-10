@@ -2,45 +2,37 @@ package com.funkard.controller;
 
 import com.funkard.model.User;
 import com.funkard.repository.UserRepository;
-import com.funkard.util.JwtUtil;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.funkard.security.JwtUtil;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "https://funkard.vercel.app")
 public class AuthController {
-    private final UserRepository userRepository;
-    private final JwtUtil jwtUtil;
+    private final UserRepository repo;
+    private final JwtUtil jwt;
 
-    public AuthController(UserRepository userRepository, JwtUtil jwtUtil) {
-        this.userRepository = userRepository;
-        this.jwtUtil = jwtUtil;
+    public AuthController(UserRepository repo, JwtUtil jwt) {
+        this.repo = repo;
+        this.jwt = jwt;
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody User user) {
-        return userRepository.save(user);
+    public ResponseEntity<?> register(@RequestBody User user) {
+        if (repo.findByEmail(user.getEmail()) != null)
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email già registrata");
+        return ResponseEntity.ok(repo.save(user));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail());
-        if (user != null && user.getPassword().equals(request.getPassword())) {
-            String token = jwtUtil.generateToken(user.getEmail());
-            return ResponseEntity.ok(Map.of("token", token));
+    public ResponseEntity<?> login(@RequestBody User user) {
+        User existing = repo.findByEmail(user.getEmail());
+        if (existing != null && existing.getPassword().equals(user.getPassword())) {
+            String token = jwt.generateToken(user.getEmail());
+            return ResponseEntity.ok(Map.of("token", token, "email", user.getEmail()));
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
-
-    public static class LoginRequest {
-        private String email;
-        private String password;
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
     }
 }

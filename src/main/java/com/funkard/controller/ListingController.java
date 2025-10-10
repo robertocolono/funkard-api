@@ -23,7 +23,7 @@ public class ListingController {
     }
 
     @PostMapping
-    public Listing createListing(@RequestBody Listing listing) {
+    public Listing create(@RequestBody Listing listing) {
         return listingRepository.save(listing);
     }
 }
