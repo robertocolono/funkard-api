@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+README.md
+*.iml
+.idea/
+.vscode/
+spring-boot.log
+.devcontainer/
+node_modules/
+*.log
