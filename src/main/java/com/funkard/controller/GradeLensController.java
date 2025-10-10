@@ -2,6 +2,7 @@ package com.funkard.controller;
 
 import com.funkard.gradelens.GradeLensService;
 import com.funkard.model.GradeReport;
+import com.funkard.service.GradeReportLookupService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +14,11 @@ import java.util.Map;
 public class GradeLensController {
 
     private final GradeLensService service;
+    private final GradeReportLookupService lookupService;
 
-    public GradeLensController(GradeLensService service) {
+    public GradeLensController(GradeLensService service, GradeReportLookupService lookupService) {
         this.service = service;
+        this.lookupService = lookupService;
     }
 
     // Analizza e salva report (ritorna l'oggetto salvato, con id)
@@ -31,9 +34,15 @@ public class GradeLensController {
         return ResponseEntity.ok(saved);
     }
 
-    // (Opzionale) Recupera un report per id — valido finché non scade
+    // Recupera un report per id — valido finché non scade
     @GetMapping("/{id}")
-    public ResponseEntity<?> get(@PathVariable String id) {
-        return ResponseEntity.ofNullable(null); // puoi implementare se ti serve
+    public ResponseEntity<?> getById(@PathVariable String id) {
+        try {
+            var report = lookupService.getOrGone(id);
+            return ResponseEntity.ok(report);
+        } catch (org.springframework.web.server.ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(Map.of("error", ex.getReason()));
+        }
     }
 }
