@@ -48,11 +48,10 @@ public class SecurityConfig {
             // 🔓 Regole di accesso
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/auth/**",      // Registrazione e login
-                    "/api/listings/**",  // Marketplace pubblico
-                    "/api/cards/**",     // Catalogo carte
-                    "/actuator/health",  // Endpoint salute
-                    "/actuator/info"     // Endpoint info
+                    "/api/auth/**",
+                    "/api/listings/**",
+                    "/api/cards/**",
+                    "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -62,7 +61,20 @@ public class SecurityConfig {
 
             // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable);
+            .httpBasic(AbstractHttpConfigurer::disable)
+
+            // 🌐 CORS esplicito per Vercel
+            .cors(cors -> cors.configurationSource(request -> {
+                var corsConfig = new org.springframework.web.cors.CorsConfiguration();
+                corsConfig.setAllowedOrigins(java.util.List.of(
+                    "https://funkardnew.vercel.app",
+                    "https://funkard.vercel.app"
+                ));
+                corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                corsConfig.setAllowedHeaders(java.util.List.of("*"));
+                corsConfig.setAllowCredentials(true);
+                return corsConfig;
+            }));
 
         return http.build();
     }
