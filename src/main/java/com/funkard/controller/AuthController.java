@@ -9,6 +9,7 @@ import com.funkard.service.EmailService;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -76,25 +77,47 @@ public class AuthController {
 
     @GetMapping("/verify")
     public ResponseEntity<?> verifyAccount(@RequestParam("token") String token) {
+        // 1️⃣ Pulizia lazy dei token scaduti
+        try {
+            verificationTokenRepository.deleteAllByExpiryDateBefore(LocalDateTime.now());
+        } catch (Exception e) {
+            System.err.println("Errore durante la pulizia dei token scaduti: " + e.getMessage());
+        }
+
+        // 2️⃣ Verifica token attuale
         var optionalToken = verificationTokenRepository.findByToken(token);
         if (optionalToken.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Token non valido"));
         }
 
         VerificationToken vt = optionalToken.get();
-        if (vt.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
+        if (vt.getExpiryDate().isBefore(LocalDateTime.now())) {
+            verificationTokenRepository.delete(vt);
             return ResponseEntity.badRequest().body(Map.of("error", "Token scaduto"));
         }
 
+        // 3️⃣ Verifica completata
         User user = vt.getUser();
+        if (user.getVerified() != null && user.getVerified()) {
+            return ResponseEntity.ok(Map.of("success", true, "message", "Account già verificato."));
+        }
+
         user.setVerified(true);
         repo.save(user);
+        verificationTokenRepository.delete(vt); // rimuove il token usato
 
-        return ResponseEntity.ok(Map.of("success", true, "message", "Account verificato con successo!"));
+        return ResponseEntity.ok(Map.of("success", true, "message", "✅ Account verificato con successo!"));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User user) {
+        // 🧹 Pulizia automatica dei token scaduti anche al login
+        try {
+            verificationTokenRepository.deleteAllByExpiryDateBefore(LocalDateTime.now());
+        } catch (Exception e) {
+            System.err.println("Errore durante la pulizia dei token scaduti: " + e.getMessage());
+        }
+
         User existing = repo.findByEmail(user.getEmail());
         if (existing != null && passwordEncoder.matches(user.getPassword(), existing.getPassword())) {
             if (!existing.getVerified()) {
