@@ -36,20 +36,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // 🔒 Disabilita CSRF (non serve per REST API stateless)
             .csrf(AbstractHttpConfigurer::disable)
+
+            // 🌐 Abilita CORS di default
             .cors(Customizer.withDefaults())
+
+            // ⚙️ Sessione stateless (JWT)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                        "/api/auth/**",
-                        "/api/listings/**",
-                        "/api/cards/**",
-                        "/actuator/health",
-                        "/actuator/info"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-                )
+
+            // 🔓 Regole di accesso
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/auth/**",      // Registrazione e login
+                    "/api/listings/**",  // Marketplace pubblico
+                    "/api/cards/**",     // Catalogo carte
+                    "/actuator/health",  // Endpoint salute
+                    "/actuator/info"     // Endpoint info
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+
+            // 🔐 Aggiunge filtro JWT prima dell’autenticazione base
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+
+            // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
 
