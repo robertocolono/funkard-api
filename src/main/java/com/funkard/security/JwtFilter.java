@@ -27,10 +27,19 @@ public class JwtFilter extends OncePerRequestFilter {
         this.userRepository = userRepository;
     }
 
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+        // 🔓 Skip JWT check for public routes
+        if (request.getServletPath().startsWith("/api/auth/") ||
+            request.getServletPath().startsWith("/actuator/") ||
+            request.getServletPath().startsWith("/api/listings/") ||
+            request.getServletPath().startsWith("/api/cards/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String email = null;
