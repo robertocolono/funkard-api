@@ -43,7 +43,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/auth/**",          // ✅ registra e login liberi
-                    "/actuator/health",      // ✅ endpoint di salute libero
+                    "/actuator/**",          // ✅ include /actuator/health
                     "/api/listings/**",      // ✅ catalogo pubblico
                     "/api/cards/**"          // ✅ carte pubbliche
                 ).permitAll()
