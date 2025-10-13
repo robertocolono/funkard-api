@@ -2,14 +2,16 @@
 package com.funkard.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@Data
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(unique = true)
     private String email;
@@ -30,7 +32,7 @@ public class User {
     private Boolean accettaTermini;
     private Boolean verified = false;
 
-    // Campi esistenti
+    // Campi esistenti per compatibilità
     private String username;
     private String avatarUrl;
     private String role = "USER";
@@ -39,51 +41,10 @@ public class User {
     @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL)
     private List<Listing> listings;
 
-    // Getter/setter base
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    
-    // Getter/setter per name (compatibilità con UserService)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private VerificationToken verificationToken;
+
+    // Metodo di compatibilità per UserService
     public String getName() { return nome; }
     public void setName(String name) { this.nome = name; }
-
-    // Nuovi getter/setter
-    public String getHandle() { return handle; }
-    public void setHandle(String handle) { this.handle = handle; }
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-    public String getPaese() { return paese; }
-    public void setPaese(String paese) { this.paese = paese; }
-    public String getTipoUtente() { return tipoUtente; }
-    public void setTipoUtente(String tipoUtente) { this.tipoUtente = tipoUtente; }
-    public String getIndirizzo() { return indirizzo; }
-    public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
-    public String getCitta() { return citta; }
-    public void setCitta(String citta) { this.citta = citta; }
-    public String getCap() { return cap; }
-    public void setCap(String cap) { this.cap = cap; }
-    public String getTelefono() { return telefono; }
-    public void setTelefono(String telefono) { this.telefono = telefono; }
-    public String getMetodoPagamento() { return metodoPagamento; }
-    public void setMetodoPagamento(String metodoPagamento) { this.metodoPagamento = metodoPagamento; }
-    public Boolean getAccettaTermini() { return accettaTermini; }
-    public void setAccettaTermini(Boolean accettaTermini) { this.accettaTermini = accettaTermini; }
-    public Boolean getVerified() { return verified; }
-    public void setVerified(Boolean verified) { this.verified = verified; }
-
-    // Getter/setter esistenti
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getAvatarUrl() { return avatarUrl; }
-    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public List<Listing> getListings() { return listings; }
-    public void setListings(List<Listing> listings) { this.listings = listings; }
 }

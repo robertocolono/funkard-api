@@ -1,8 +1,11 @@
 package com.funkard.controller;
 
 import com.funkard.model.User;
+import com.funkard.model.VerificationToken;
 import com.funkard.repository.UserRepository;
+import com.funkard.repository.VerificationTokenRepository;
 import com.funkard.security.JwtUtil;
+import com.funkard.service.EmailService;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +16,16 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class AuthController {
     private final UserRepository repo;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final EmailService emailService;
     private final JwtUtil jwt;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthController(UserRepository repo, JwtUtil jwt) {
+    public AuthController(UserRepository repo, VerificationTokenRepository verificationTokenRepository, 
+                         EmailService emailService, JwtUtil jwt) {
         this.repo = repo;
+        this.verificationTokenRepository = verificationTokenRepository;
+        this.emailService = emailService;
         this.jwt = jwt;
     }
 
@@ -49,19 +57,50 @@ public class AuthController {
         userRequest.setVerified(false);
 
         try {
-            repo.save(userRequest);
+            User savedUser = repo.save(userRequest);
+
+            // Genera token e salva
+            VerificationToken token = VerificationToken.generate(savedUser);
+            verificationTokenRepository.save(token);
+
+            // Invia mail
+            emailService.sendVerificationEmail(savedUser.getEmail(), token.getToken());
+
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of("success", true, "message", "Registrazione completata con successo"));
+                    .body(Map.of("success", true, "message", "Registrazione completata. Controlla la tua email per verificare l'account."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Errore interno del server"));
         }
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyAccount(@RequestParam("token") String token) {
+        var optionalToken = verificationTokenRepository.findByToken(token);
+        if (optionalToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token non valido"));
+        }
+
+        VerificationToken vt = optionalToken.get();
+        if (vt.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token scaduto"));
+        }
+
+        User user = vt.getUser();
+        user.setVerified(true);
+        repo.save(user);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Account verificato con successo!"));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User user) {
         User existing = repo.findByEmail(user.getEmail());
         if (existing != null && passwordEncoder.matches(user.getPassword(), existing.getPassword())) {
+            if (!existing.getVerified()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Account non verificato. Controlla la tua email."));
+            }
             String token = jwt.generateToken(user.getEmail());
             return ResponseEntity.ok(Map.of("token", token, "email", user.getEmail()));
         }

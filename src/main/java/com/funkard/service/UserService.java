@@ -24,7 +24,7 @@ public class UserService {
         return toDTO(repo.save(user));
     }
 
-    public void delete(String id) {
+    public void delete(Long id) {
         repo.deleteById(id);
     }
 
