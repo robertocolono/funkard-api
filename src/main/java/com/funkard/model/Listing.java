@@ -17,6 +17,10 @@ public class Listing {
     private String condition;
     private String seller;
 
+    @ManyToOne
+    @JoinColumn(name = "card_id")
+    private Card card;
+
     // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,4 +39,7 @@ public class Listing {
 
     public String getSeller() { return seller; }
     public void setSeller(String seller) { this.seller = seller; }
+
+    public Card getCard() { return card; }
+    public void setCard(Card card) { this.card = card; }
 }
