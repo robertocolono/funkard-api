@@ -26,21 +26,27 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
     }
 
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+            return configuration.getAuthenticationManager();
+        }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/**",          // ✅ registra e login liberi
-                    "/actuator/**",          // ✅ include /actuator/health
-                    "/api/listings/**",      // ✅ catalogo pubblico
-                    "/api/cards/**"          // ✅ carte pubbliche
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
+                .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(
+                        "/api/auth/**",
+                        "/api/listings/**",
+                        "/api/cards/**",
+                        "/actuator/health",
+                        "/actuator/info"
+                    ).permitAll()
+                    .anyRequest().authenticated()
+                )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
