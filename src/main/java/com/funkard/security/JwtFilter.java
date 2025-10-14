@@ -37,6 +37,7 @@ public class JwtFilter extends OncePerRequestFilter {
             request.getServletPath().startsWith("/api/listings/") ||
             request.getServletPath().startsWith("/api/cards/") ||
             request.getServletPath().startsWith("/api/usercards/") ||
+            request.getServletPath().startsWith("/api/gradelens/") ||
             request.getServletPath().startsWith("/api/collection/")) {
             filterChain.doFilter(request, response);
             return;

@@ -53,6 +53,7 @@ public class SecurityConfig {
                     "/api/cards/**",
                     "/api/usercards/**",
                     "/api/collection/**",
+                    "/api/gradelens/**",
                     "/api/collection/**",
                     "/actuator/**"
                 ).permitAll()
