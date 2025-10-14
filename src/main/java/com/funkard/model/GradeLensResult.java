@@ -1,33 +1,28 @@
 package com.funkard.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "gradelens_results")
 public class GradeLensResult {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false)
-    private String userCardId;
-
-    private Double corners;     // 0–10
-    private Double edges;       // 0–10
-    private Double surface;     // 0–10
-    private Double centering;   // 0–10
-    private Double overallGrade; // media ponderata finale
-
-    private String aiModel;     // es. "Funkard-GradeLens-v1"
-    private String source;      // manual, AI, hybrid
-
+    private String userId;
+    private double centering;
+    private double surface;
+    private double edges;
+    private double corners;
+    private double grade; // overall grade
+    private String category; // opzionale: categoria carta
+    private String source;   // manual, purchase, gradelens
+    private boolean verified = false;
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "userCardId", insertable = false, updatable = false)
-    private UserCard userCard;
 }
