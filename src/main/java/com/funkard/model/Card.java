@@ -20,6 +20,10 @@ public class Card {
     private Double marketValue = 0.0;
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Campi opzionali per la gestione della collezione personale
+    private String condition; // es: MINT, NEAR_MINT, EXCELLENT, GOOD, FAIR, POOR
+    private String source;    // es: "collection", "market", ecc.
+
     @OneToMany(mappedBy = "card")
     private List<Listing> listings;
 }

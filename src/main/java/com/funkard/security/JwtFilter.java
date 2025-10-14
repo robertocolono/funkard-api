@@ -35,7 +35,8 @@ public class JwtFilter extends OncePerRequestFilter {
         if (request.getServletPath().startsWith("/api/auth/") ||
             request.getServletPath().startsWith("/actuator/") ||
             request.getServletPath().startsWith("/api/listings/") ||
-            request.getServletPath().startsWith("/api/cards/")) {
+            request.getServletPath().startsWith("/api/cards/") ||
+            request.getServletPath().startsWith("/api/collection/")) {
             filterChain.doFilter(request, response);
             return;
         }
