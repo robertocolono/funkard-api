@@ -33,6 +33,30 @@ public class R2Service {
         return key;
     }
 
+    public String uploadUserCardFile(MultipartFile file, String userCardId, String slot) throws IOException {
+        String original = file.getOriginalFilename();
+        String safeName = (original == null || original.isBlank()) ? (slot + ".dat") : original.replaceAll("[^a-zA-Z0-9._-]","_");
+        String key = "usercards/" + userCardId + "/" + slot + "-" + safeName;
+
+        s3Client.putObject(
+                PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .contentType(file.getContentType())
+                        .build(),
+                RequestBody.fromBytes(file.getBytes())
+        );
+
+        String publicBase = System.getenv("R2_PUBLIC_BASE_URL");
+        if (publicBase != null && !publicBase.isBlank()) {
+            if (publicBase.endsWith("/")) {
+                return publicBase + key;
+            }
+            return publicBase + "/" + key;
+        }
+        return key; // fallback
+    }
+
     public byte[] downloadFile(String key) throws IOException {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucket)

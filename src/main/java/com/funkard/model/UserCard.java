@@ -43,11 +43,22 @@ public class UserCard {
     private String cornerBottomLeft;
     private String cornerBottomRight;
 
+    // Alias / nuovi campi richiesti per upload RAW (compatibilità frontend)
+    private String topLeftImage;
+    private String topRightImage;
+    private String bottomLeftImage;
+    private String bottomRightImage;
+
     // Immagini RAW extra (bordi)
     private String edgeLeft;
     private String edgeRight;
     private String edgeTop;
     private String edgeBottom;
+
+    private String edgeTopImage;    // alias
+    private String edgeBottomImage; // alias
+    private String edgeLeftImage;   // alias
+    private String edgeRightImage;  // alias
 
     // Analisi / GradeLens
     private Double gradeValue;
@@ -120,6 +131,24 @@ public class UserCard {
 
     public String getEdgeBottom() { return edgeBottom; }
     public void setEdgeBottom(String edgeBottom) { this.edgeBottom = edgeBottom; }
+
+    public String getTopLeftImage() { return topLeftImage; }
+    public void setTopLeftImage(String topLeftImage) { this.topLeftImage = topLeftImage; this.cornerTopLeft = topLeftImage; }
+    public String getTopRightImage() { return topRightImage; }
+    public void setTopRightImage(String topRightImage) { this.topRightImage = topRightImage; this.cornerTopRight = topRightImage; }
+    public String getBottomLeftImage() { return bottomLeftImage; }
+    public void setBottomLeftImage(String bottomLeftImage) { this.bottomLeftImage = bottomLeftImage; this.cornerBottomLeft = bottomLeftImage; }
+    public String getBottomRightImage() { return bottomRightImage; }
+    public void setBottomRightImage(String bottomRightImage) { this.bottomRightImage = bottomRightImage; this.cornerBottomRight = bottomRightImage; }
+
+    public String getEdgeTopImage() { return edgeTopImage; }
+    public void setEdgeTopImage(String edgeTopImage) { this.edgeTopImage = edgeTopImage; this.edgeTop = edgeTopImage; }
+    public String getEdgeBottomImage() { return edgeBottomImage; }
+    public void setEdgeBottomImage(String edgeBottomImage) { this.edgeBottomImage = edgeBottomImage; this.edgeBottom = edgeBottomImage; }
+    public String getEdgeLeftImage() { return edgeLeftImage; }
+    public void setEdgeLeftImage(String edgeLeftImage) { this.edgeLeftImage = edgeLeftImage; this.edgeLeft = edgeLeftImage; }
+    public String getEdgeRightImage() { return edgeRightImage; }
+    public void setEdgeRightImage(String edgeRightImage) { this.edgeRightImage = edgeRightImage; this.edgeRight = edgeRightImage; }
 
     public Double getGradeValue() { return gradeValue; }
     public void setGradeValue(Double gradeValue) { this.gradeValue = gradeValue; }
