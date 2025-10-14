@@ -2,6 +2,7 @@ package com.funkard.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -32,12 +33,15 @@ public class R2Service {
         return key;
     }
 
-    public byte[] downloadFile(String key) {
-    ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObject(
-        GetObjectRequest.builder().bucket(bucket).key(key).build(),
-        software.amazon.awssdk.core.sync.ResponseTransformer.toBytes()
-    );
-    return responseBytes.asByteArray();
+    public byte[] downloadFile(String key) throws IOException {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build();
+
+        try (ResponseInputStream<GetObjectResponse> inputStream = s3Client.getObject(getObjectRequest)) {
+            return inputStream.readAllBytes();
+        }
     }
 
     public void deleteFile(String key) {
