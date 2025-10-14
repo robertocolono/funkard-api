@@ -28,3 +28,7 @@ management:
   endpoint:
     health:
       show-details: always
+
+funkard:
+  frontend:
+    url: https://funkard.vercel.app
