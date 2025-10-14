@@ -33,11 +33,11 @@ public class R2Service {
     }
 
     public byte[] downloadFile(String key) {
-        GetObjectResponse response = s3Client.getObject(
-                GetObjectRequest.builder().bucket(bucket).key(key).build(),
-                software.amazon.awssdk.core.sync.ResponseTransformer.toBytes()
-        );
-        return response.asByteArray();
+    ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObject(
+        GetObjectRequest.builder().bucket(bucket).key(key).build(),
+        software.amazon.awssdk.core.sync.ResponseTransformer.toBytes()
+    );
+    return responseBytes.asByteArray();
     }
 
     public void deleteFile(String key) {
