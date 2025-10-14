@@ -7,27 +7,29 @@ import com.funkard.repository.VerificationTokenRepository;
 import com.funkard.security.JwtUtil;
 import com.funkard.service.EmailService;
 import org.springframework.http.*;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://funkardnew.vercel.app")
 public class AuthController {
     private final UserRepository repo;
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailService emailService;
     private final JwtUtil jwt;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository repo, VerificationTokenRepository verificationTokenRepository, 
-                         EmailService emailService, JwtUtil jwt) {
+    public AuthController(UserRepository repo, VerificationTokenRepository verificationTokenRepository,
+                          EmailService emailService, JwtUtil jwt, PasswordEncoder passwordEncoder) {
         this.repo = repo;
         this.verificationTokenRepository = verificationTokenRepository;
         this.emailService = emailService;
         this.jwt = jwt;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
@@ -110,7 +112,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         // 🧹 Pulizia automatica dei token scaduti anche al login
         try {
             verificationTokenRepository.deleteAllByExpiryDateBefore(LocalDateTime.now());
@@ -118,15 +120,31 @@ public class AuthController {
             System.err.println("Errore durante la pulizia dei token scaduti: " + e.getMessage());
         }
 
-        User existing = repo.findByEmail(user.getEmail());
-        if (existing != null && passwordEncoder.matches(user.getPassword(), existing.getPassword())) {
-            if (!existing.getVerified()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Account non verificato. Controlla la tua email."));
-            }
-            String token = jwt.generateToken(user.getEmail());
-            return ResponseEntity.ok(Map.of("token", token, "email", user.getEmail()));
+        String email = credentials.get("email");
+        String password = credentials.get("password");
+
+        User existing = repo.findByEmail(email);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Utente non trovato"));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        if (!passwordEncoder.matches(password, existing.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Password errata"));
+        }
+
+        if (!Boolean.TRUE.equals(existing.getVerified())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Account non verificato. Controlla la tua email."));
+        }
+
+        String token = jwt.generateToken(email);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login riuscito");
+        response.put("token", token);
+        response.put("userId", existing.getId());
+        response.put("username", existing.getUsername());
+
+        return ResponseEntity.ok(response);
     }
 }
