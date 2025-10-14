@@ -29,4 +29,14 @@ public class GradeLensController {
     public List<GradeLensResult> getByUser(@PathVariable String userId) {
         return repo.findByUserId(userId);
     }
+
+    @PutMapping("/{id}/confirm")
+    public ResponseEntity<GradeLensResult> confirmAdd(@PathVariable Long id) {
+        return repo.findById(id)
+                .map(res -> {
+                    res.setAddedToCollection(true);
+                    return ResponseEntity.ok(repo.save(res));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

@@ -25,4 +25,5 @@ public class GradeLensResult {
     private String source;   // manual, purchase, gradelens
     private boolean verified = false;
     private LocalDateTime createdAt = LocalDateTime.now();
+    private boolean addedToCollection = false;
 }
