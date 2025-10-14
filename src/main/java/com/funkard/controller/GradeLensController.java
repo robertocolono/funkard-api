@@ -52,7 +52,7 @@ public class GradeLensController {
     @DeleteMapping("/cleanup")
     public ResponseEntity<String> cleanup() {
         LocalDateTime cutoff = LocalDateTime.now().minusHours(36);
-        int deleted = repo.deleteExpired("gradelens", cutoff);
-        return ResponseEntity.ok("Deleted " + deleted + " expired results");
+        repo.deleteExpired("manual", cutoff);
+        return ResponseEntity.ok("Cleanup eseguito per source=manual prima di " + cutoff);
     }
 }
