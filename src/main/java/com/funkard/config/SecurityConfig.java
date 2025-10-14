@@ -51,6 +51,8 @@ public class SecurityConfig {
                     "/api/auth/**",
                     "/api/listings/**",
                     "/api/cards/**",
+                    "/api/usercards/**",
+                    "/api/collection/**",
                     "/api/collection/**",
                     "/actuator/**"
                 ).permitAll()
