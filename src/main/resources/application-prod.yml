@@ -29,12 +29,10 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    mail:
+      enabled: false
 
 funkard:
   frontend:
     url: https://funkard.vercel.app
-
-management:
-  health:
-    mail:
-      enabled: false
