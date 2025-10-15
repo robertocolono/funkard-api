@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class MarketValuationService {
@@ -16,6 +19,9 @@ public class MarketValuationService {
 
     @Autowired
     private AdminNotifierService notifier;
+
+    @Autowired(required = false)
+    private com.funkard.market.repository.MarketListingRepository listingRepo;
 
     public MarketValuation getOrCreateValuation(
             String itemName,
@@ -74,5 +80,60 @@ public class MarketValuationService {
         double gradeFactor = grade != null ? (grade / 10.0) : 1.0;
 
         return base * multiplier * gradeFactor;
+    }
+
+    public void refreshOnlyRecentSales() {
+        if (listingRepo == null) {
+            System.out.println("⚠️ listingRepo non configurato: skip refresh incrementale.");
+            return;
+        }
+        LocalDateTime since = LocalDateTime.now().minusHours(6);
+        List<com.funkard.market.model.MarketListing> recentSales = listingRepo.findSoldAfter(since);
+
+        if (recentSales == null || recentSales.isEmpty()) {
+            System.out.println("ℹ️ Nessuna vendita recente trovata, skip aggiornamento.");
+            return;
+        }
+
+        Set<String> updatedKeys = new HashSet<>();
+        for (com.funkard.market.model.MarketListing sale : recentSales) {
+            String key = sale.getItemName() + "|" + sale.getSetName() + "|" + sale.getCategory() + "|" + sale.getCondition();
+            updatedKeys.add(key);
+        }
+
+        for (String key : updatedKeys) {
+            String[] parts = key.split("\\|");
+            if (parts.length == 4) {
+                recalcValuation(parts[0], parts[1], parts[2], parts[3]);
+            }
+        }
+
+        System.out.println("✅ Aggiornati " + updatedKeys.size() + " item con vendite recenti.");
+    }
+
+    private void recalcValuation(String itemName, String setName, String category, String condition) {
+        if (listingRepo == null) return;
+        List<com.funkard.market.model.MarketListing> recent = listingRepo.findRecentSold(
+                itemName, setName, category, condition, LocalDateTime.now().minusDays(30)
+        );
+        if (recent == null || recent.isEmpty()) return;
+
+        double avg = recent.stream().mapToDouble(com.funkard.market.model.MarketListing::getPriceEUR).average().orElse(0);
+        double last = recent.get(recent.size() - 1).getPriceEUR();
+
+        MarketValuation v = repo.findByItemNameAndSetNameAndCategoryAndCondition(itemName, setName, category, condition)
+                .orElse(new MarketValuation());
+
+        v.setItemName(itemName);
+        v.setSetName(setName);
+        v.setCategory(category);
+        v.setCondition(condition);
+        v.setAvgPrice(avg);
+        v.setLastSoldPrice(last);
+        v.setEstimatedValueProvvisorio(false);
+        v.setManualCheck(false);
+        v.setUpdatedAt(LocalDateTime.now());
+
+        repo.save(v);
     }
 }

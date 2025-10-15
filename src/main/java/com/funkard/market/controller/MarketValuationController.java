@@ -26,6 +26,21 @@ public class MarketValuationController {
         return ResponseEntity.ok(valuation);
     }
 
+    @PostMapping("/refreshIncremental")
+    public ResponseEntity<String> refreshIncremental(@RequestHeader("Authorization") String auth) {
+        String expected = "Bearer " + System.getenv("FUNKARD_CRON_SECRET");
+        if (!expected.equals(auth)) {
+            return ResponseEntity.status(403).body("Unauthorized");
+        }
+        try {
+            service.refreshOnlyRecentSales();
+            return ResponseEntity.ok("✅ Funkard market valuations refreshed incrementally.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
     public record MarketValuationRequest(
             String itemName,
             String setName,
