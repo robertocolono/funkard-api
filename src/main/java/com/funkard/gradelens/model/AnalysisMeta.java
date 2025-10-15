@@ -1,15 +1,14 @@
 package com.funkard.gradelens.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class AnalysisMeta {
-    public double sharpness;
-    public double glare;
-    public double skew;
-
-    public AnalysisMeta() {}
-
-    public AnalysisMeta(double sharpness, double glare, double skew) {
-        this.sharpness = sharpness;
-        this.glare = glare;
-        this.skew = skew;
-    }
+    private double sharpness;
+    private double glare;
+    private double skew;
 }

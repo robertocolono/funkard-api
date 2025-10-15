@@ -1,17 +1,15 @@
 package com.funkard.gradelens.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Subgrades {
-    public double centering;
-    public double corners;
-    public double edges;
-    public double surface;
-
-    public Subgrades() {}
-
-    public Subgrades(double centering, double corners, double edges, double surface) {
-        this.centering = centering;
-        this.corners = corners;
-        this.edges = edges;
-        this.surface = surface;
-    }
+    private double centering;
+    private double corners;
+    private double edges;
+    private double surface;
 }

@@ -1,10 +1,17 @@
 package com.funkard.gradelens.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
+@Data
+@AllArgsConstructor
 public class GradeLensResponse {
-    public double overall;
-    public Subgrades subgrades;
-    public List<DiagnosticType> diagnostics;
-    public AnalysisMeta analysisMeta;
+    private double overall;
+    private Subgrades subgrades;
+    private List<String> diagnostics;
+    private AnalysisMeta analysisMeta;
+    private LocalDateTime gradedAt;
 }
