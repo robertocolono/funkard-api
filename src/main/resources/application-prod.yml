@@ -40,3 +40,8 @@ funkard:
 admin:
   email: ${ADMIN_EMAIL:}
   token: ${ADMIN_TOKEN:}
+
+# Disable Flyway for production
+spring:
+  flyway:
+    enabled: false
