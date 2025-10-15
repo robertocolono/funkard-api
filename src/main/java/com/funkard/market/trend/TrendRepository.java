@@ -8,4 +8,5 @@ import java.util.List;
 public interface TrendRepository extends JpaRepository<Trend, Long> {
     List<Trend> findByItemNameAndCategoryAndRangeType(String itemName, String category, String rangeType);
     List<Trend> findByManualCheckTrue();
+    long countByManualCheckTrue();
 }

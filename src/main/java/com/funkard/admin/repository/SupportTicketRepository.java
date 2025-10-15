@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, UUID> {
     List<SupportTicket> findByUserId(String userId);
     List<SupportTicket> findByStatus(String status);
+    long countByStatus(String status);
 }
