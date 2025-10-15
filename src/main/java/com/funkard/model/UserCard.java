@@ -61,10 +61,15 @@ public class UserCard {
     private String edgeRightImage;  // alias
 
     // Analisi / GradeLens
-    private Double gradeValue;
-    private String gradeLabel;
-    private Double gradeConfidence;
-    private String gradeReportUrl;
+    private String gradeService; // FUNKARD, PSA, ecc.
+    private Double gradeOverall; // voto numerico
+    private String gradeLabel;   // etichetta (Mint, Gem-Mint, ...)
+    @Column(columnDefinition = "jsonb")
+    private String subgrades;    // JSON puro con i 4 subgrades
+    @Column(columnDefinition = "TIMESTAMP")
+    private LocalDateTime gradedAt; // quando è stato calcolato il grade
+    @Column(nullable = false)
+    private boolean permanent = false; // se true, non viene pulito dallo scheduler
 
     // Timestamps
     @Column(nullable = false, updatable = false)
@@ -150,17 +155,18 @@ public class UserCard {
     public String getEdgeRightImage() { return edgeRightImage; }
     public void setEdgeRightImage(String edgeRightImage) { this.edgeRightImage = edgeRightImage; this.edgeRight = edgeRightImage; }
 
-    public Double getGradeValue() { return gradeValue; }
-    public void setGradeValue(Double gradeValue) { this.gradeValue = gradeValue; }
-
+    public String getGradeService() { return gradeService; }
+    public void setGradeService(String gradeService) { this.gradeService = gradeService; }
+    public Double getGradeOverall() { return gradeOverall; }
+    public void setGradeOverall(Double gradeOverall) { this.gradeOverall = gradeOverall; }
     public String getGradeLabel() { return gradeLabel; }
     public void setGradeLabel(String gradeLabel) { this.gradeLabel = gradeLabel; }
-
-    public Double getGradeConfidence() { return gradeConfidence; }
-    public void setGradeConfidence(Double gradeConfidence) { this.gradeConfidence = gradeConfidence; }
-
-    public String getGradeReportUrl() { return gradeReportUrl; }
-    public void setGradeReportUrl(String gradeReportUrl) { this.gradeReportUrl = gradeReportUrl; }
+    public String getSubgrades() { return subgrades; }
+    public void setSubgrades(String subgrades) { this.subgrades = subgrades; }
+    public LocalDateTime getGradedAt() { return gradedAt; }
+    public void setGradedAt(LocalDateTime gradedAt) { this.gradedAt = gradedAt; }
+    public boolean isPermanent() { return permanent; }
+    public void setPermanent(boolean permanent) { this.permanent = permanent; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

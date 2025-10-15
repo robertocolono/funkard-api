@@ -34,14 +34,15 @@ public class GradeLensController {
         UserCard card = userCardRepository.findById(req.getCardId())
             .orElseThrow(() -> new RuntimeException("Card not found"));
 
-        card.setGradeValue(overall);
+        card.setGradeService(req.getService());
+        card.setGradeOverall(overall);
         card.setGradeLabel(label);
-        // Salva subgrades come JSON string (se serve)
         try {
-            card.setGradeReportUrl(new ObjectMapper().writeValueAsString(sub));
+            card.setSubgrades(new ObjectMapper().writeValueAsString(sub));
         } catch (Exception e) {
-            card.setGradeReportUrl("{}");
+            card.setSubgrades("{}");
         }
+        card.setGradedAt(java.time.LocalDateTime.now());
         userCardRepository.save(card);
         return ResponseEntity.ok(card);
     }
@@ -65,6 +66,14 @@ public class GradeLensController {
     @GetMapping("/{userId}")
     public List<GradeLensResult> getByUser(@PathVariable String userId) {
         return repo.findByUserId(userId);
+    }
+
+    // Recupera grading per singola UserCard
+    @GetMapping("/card/{userCardId}")
+    public ResponseEntity<UserCard> getCardGrading(@PathVariable String userCardId) {
+        return userCardRepository.findById(userCardId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/confirm")
