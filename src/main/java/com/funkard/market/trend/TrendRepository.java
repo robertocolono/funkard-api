@@ -11,4 +11,5 @@ public interface TrendRepository extends JpaRepository<Trend, Long> {
     List<Trend> findByManualCheckTrue();
     long countByManualCheckTrue();
     long countByManualCheckTrueAndUpdatedAtAfter(LocalDateTime start);
+    boolean existsByItemNameAndCategory(String itemName, String category);
 }

@@ -1,5 +1,6 @@
 package com.funkard.controller;
 
+import com.funkard.admin.service.AdminNotificationService;
 import com.funkard.model.Card;
 import com.funkard.model.UserCard;
 import com.funkard.repository.CardRepository;
@@ -20,11 +21,13 @@ public class CollectionController {
     private final CardRepository cardRepository;
     private final UserCardRepository userCardRepository;
     private final R2Service r2Service;
+    private final AdminNotificationService adminNotificationService;
 
-    public CollectionController(CardRepository cardRepository, UserCardRepository userCardRepository, R2Service r2Service) {
+    public CollectionController(CardRepository cardRepository, UserCardRepository userCardRepository, R2Service r2Service, AdminNotificationService adminNotificationService) {
         this.cardRepository = cardRepository;
         this.userCardRepository = userCardRepository;
         this.r2Service = r2Service;
+        this.adminNotificationService = adminNotificationService;
     }
 
     // Crea una card nella collezione, opzionalmente caricando un'immagine
@@ -41,6 +44,8 @@ public class CollectionController {
             card.setSource("collection");
         }
         Card saved = cardRepository.save(card);
+        // Notifica admin per nuovo prodotto senza storico
+        adminNotificationService.notifyNewProductWithoutTrend(saved.getId());
         return ResponseEntity.ok(saved);
     }
 
