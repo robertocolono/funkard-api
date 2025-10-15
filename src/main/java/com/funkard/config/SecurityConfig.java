@@ -1,3 +1,7 @@
+    @Bean
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+    }
 package com.funkard.config;
 
 import com.funkard.security.JwtFilter;
