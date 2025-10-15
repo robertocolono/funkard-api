@@ -1,7 +1,12 @@
 package com.funkard.controller;
 
 import com.funkard.model.GradeLensResult;
+import com.funkard.model.UserCard;
+import com.funkard.model.dto.GradeRequest;
 import com.funkard.repository.GradeLensRepository;
+import com.funkard.repository.UserCardRepository;
+import com.funkard.service.GradeCalculator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
@@ -13,9 +18,32 @@ import java.util.List;
 public class GradeLensController {
 
     private final GradeLensRepository repo;
+    private final UserCardRepository userCardRepository;
 
-    public GradeLensController(GradeLensRepository repo) {
+    public GradeLensController(GradeLensRepository repo, UserCardRepository userCardRepository) {
         this.repo = repo;
+        this.userCardRepository = userCardRepository;
+    }
+    // Endpoint deterministico: calcola grade e aggiorna UserCard
+    @PostMapping("/analyze")
+    public ResponseEntity<UserCard> analyzeAndSave(@RequestBody GradeRequest req) {
+        var sub = GradeCalculator.computeSubgrades(req);
+        double overall = GradeCalculator.computeOverall(sub);
+        String label = GradeCalculator.labelFromGrade(overall);
+
+        UserCard card = userCardRepository.findById(req.getCardId())
+            .orElseThrow(() -> new RuntimeException("Card not found"));
+
+        card.setGradeValue(overall);
+        card.setGradeLabel(label);
+        // Salva subgrades come JSON string (se serve)
+        try {
+            card.setGradeReportUrl(new ObjectMapper().writeValueAsString(sub));
+        } catch (Exception e) {
+            card.setGradeReportUrl("{}");
+        }
+        userCardRepository.save(card);
+        return ResponseEntity.ok(card);
     }
 
     @PostMapping
