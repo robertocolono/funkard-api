@@ -25,7 +25,7 @@ public class GradeLensController {
         this.userCardRepository = userCardRepository;
     }
     // Endpoint deterministico: calcola grade e aggiorna UserCard
-    @PostMapping("/analyze")
+    @PostMapping("/analyze-deterministic")
     public ResponseEntity<UserCard> analyzeAndSave(@RequestBody GradeRequest req) {
         var sub = GradeCalculator.computeSubgrades(req);
         double overall = GradeCalculator.computeOverall(sub);

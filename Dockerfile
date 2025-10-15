@@ -13,15 +13,27 @@ RUN chmod +x mvnw
 # Cache dependencies
 RUN ./mvnw dependency:go-offline -B
 
+# Install OpenCV dependencies for build
+RUN apt-get update && apt-get install -y \
+	libopencv-dev \
+	python3-opencv \
+	&& rm -rf /var/lib/apt/lists/*
+
 COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 ########################################
 # 🚀 STAGE 2 — RUNTIME
 ########################################
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
+
+# Install OpenCV dependencies in runtime
+RUN apt-get update && apt-get install -y \
+	libopencv-dev \
+	python3-opencv \
+	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/*.jar app.jar
 
