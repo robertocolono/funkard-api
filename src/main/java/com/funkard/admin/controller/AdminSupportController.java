@@ -1,6 +1,8 @@
 package com.funkard.admin.controller;
 
+import com.funkard.admin.dto.SupportStatsDTO;
 import com.funkard.admin.dto.TicketDTO;
+import com.funkard.admin.service.AdminSupportService;
 import com.funkard.admin.service.SupportService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -12,16 +14,18 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/support")
-@CrossOrigin(origins = {"https://funkard.vercel.app"})
+@CrossOrigin(origins = {"https://admin.funkard.com", "https://funkard.vercel.app"})
 public class AdminSupportController {
 
     private final SupportService service;
+    private final AdminSupportService adminSupportService;
     
     @Value("${admin.token}")
     private String adminToken;
 
-    public AdminSupportController(SupportService service) {
+    public AdminSupportController(SupportService service, AdminSupportService adminSupportService) {
         this.service = service;
+        this.adminSupportService = adminSupportService;
     }
 
     @GetMapping("/tickets")
@@ -30,6 +34,16 @@ public class AdminSupportController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(service.getAllTickets());
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getSupportStats(@RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (token == null || !token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized");
+        }
+
+        List<SupportStatsDTO> stats = adminSupportService.getStatsLast30Days();
+        return ResponseEntity.ok(stats);
     }
 
     @PostMapping("/reply/{id}")
