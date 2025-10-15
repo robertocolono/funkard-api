@@ -36,3 +36,7 @@ management:
 funkard:
   frontend:
     url: https://funkard.vercel.app
+
+admin:
+  email: ${ADMIN_EMAIL:}
+  token: ${ADMIN_TOKEN:}
