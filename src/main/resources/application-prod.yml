@@ -17,6 +17,9 @@ spring:
     init:
       mode: never
 
+  flyway:
+    enabled: false
+
 server:
   port: ${PORT:10000}
 
@@ -40,8 +43,3 @@ funkard:
 admin:
   email: ${ADMIN_EMAIL:}
   token: ${ADMIN_TOKEN:}
-
-# Disable Flyway for production
-spring:
-  flyway:
-    enabled: false
