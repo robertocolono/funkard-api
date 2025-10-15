@@ -55,6 +55,32 @@ public class UserCardController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // PUT parziale: aggiorna solo alcuni campi (condition, estimatedValue)
+    @PutMapping("/usercards/{id}")
+    public ResponseEntity<?> updateUserCard(@PathVariable String id, @RequestBody java.util.Map<String, Object> updates) {
+        return userCardRepository.findById(id)
+                .map(card -> {
+                    if (updates.containsKey("condition")) {
+                        card.setCondition((String) updates.get("condition"));
+                    }
+                    if (updates.containsKey("estimatedValue")) {
+                        Object val = updates.get("estimatedValue");
+                        if (val != null) {
+                            try {
+                                card.setEstimatedValue(Double.parseDouble(val.toString()));
+                            } catch (NumberFormatException nfe) {
+                                return ResponseEntity.badRequest().body(java.util.Map.of("error", "Invalid estimatedValue"));
+                            }
+                        } else {
+                            card.setEstimatedValue(null);
+                        }
+                    }
+                    userCardRepository.save(card);
+                    return ResponseEntity.ok(java.util.Map.of("status", "updated"));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     // DELETE carta
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCard(@PathVariable String id) {
