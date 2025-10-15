@@ -38,6 +38,8 @@ public class UserCardController {
     // POST nuova carta
     @PostMapping
     public ResponseEntity<UserCard> addCard(@RequestBody UserCard card) {
+        // Se la carta viene aggiunta esplicitamente alla collezione, segniamola come permanente
+        card.setPermanent(true);
         UserCard saved = userCardRepository.save(card);
         return ResponseEntity.ok(saved);
     }

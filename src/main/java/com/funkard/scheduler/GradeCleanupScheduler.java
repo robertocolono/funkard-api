@@ -16,20 +16,13 @@ public class GradeCleanupScheduler {
         this.userCardRepository = userCardRepository;
     }
 
-    @Scheduled(cron = "0 0 3 * * *") // ogni giorno alle 3:00
+    @Scheduled(cron = "0 0 3 * * *", zone = "Europe/Rome") // ogni giorno alle 3:00 ora di Roma
     public void deleteExpiredGrades() {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
         List<UserCard> expired = userCardRepository.findByGradedAtBeforeAndPermanentFalse(cutoff);
-
-        for (UserCard card : expired) {
-            card.setGradeService(null);
-            card.setGradeOverall(null);
-            card.setGradeLabel(null);
-            card.setSubgrades(null);
-            card.setGradedAt(null);
-            userCardRepository.save(card);
+        if (!expired.isEmpty()) {
+            userCardRepository.deleteAll(expired);
         }
-
-        System.out.println("🧹 Pulizia completata: " + expired.size() + " grading rimossi.");
+        System.out.println("🧹 Pulite " + expired.size() + " carte scadute (" + LocalDateTime.now() + ")");
     }
 }
