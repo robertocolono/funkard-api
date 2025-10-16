@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
-public class AdminController {
+public class AdminAuthController {
 
     @Value("${admin.token}")
     private String adminToken;
