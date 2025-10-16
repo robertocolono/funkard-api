@@ -1,7 +1,7 @@
 package com.funkard.grading.service;
 
 import com.funkard.admin.service.AdminNotificationService;
-import com.funkard.admin.notification.AdminNotification;
+import com.funkard.admin.model.AdminNotification;
 import com.funkard.grading.model.GradingRequest;
 import com.funkard.grading.repository.GradingRepository;
 import org.springframework.stereotype.Service;
@@ -32,9 +32,7 @@ public class GradingService {
 
         } catch (Exception e) {
             // 🔴 Se qualcosa va storto, invia notifica admin
-            notifications.create(
-                    AdminNotification.Type.GRADING,
-                    AdminNotification.Severity.ERROR,
+            notifications.gradingEvent(
                     "Errore invio grading",
                     "Errore durante l'invio della carta #" + request.getCardId() + " per grading: " + e.getMessage(),
                     Map.of("cardId", request.getCardId(), "error", e.getMessage(), "userId", request.getUserId())
@@ -57,9 +55,7 @@ public class GradingService {
 
         } catch (Exception e) {
             // 🔴 Notifica anche in caso di errore aggiornamento
-            notifications.create(
-                    AdminNotification.Type.GRADING,
-                    AdminNotification.Severity.ERROR,
+            notifications.gradingEvent(
                     "Errore aggiornamento grading",
                     "Errore durante aggiornamento status grading carta #" + cardId + ": " + e.getMessage(),
                     Map.of("cardId", cardId, "error", e.getMessage())
@@ -80,9 +76,7 @@ public class GradingService {
             repo.save(grading);
 
             // 🔴 Notifica admin per grading fallito
-            notifications.create(
-                    AdminNotification.Type.GRADING,
-                    AdminNotification.Severity.ERROR,
+            notifications.gradingEvent(
                     "Grading fallito",
                     "Il grading della carta #" + cardId + " è fallito: " + errorMessage,
                     Map.of("cardId", cardId, "errorMessage", errorMessage)
@@ -90,9 +84,7 @@ public class GradingService {
 
         } catch (Exception e) {
             // 🔴 Notifica anche in caso di errore nel salvataggio del fallimento
-            notifications.create(
-                    AdminNotification.Type.GRADING,
-                    AdminNotification.Severity.ERROR,
+            notifications.gradingEvent(
                     "Errore salvataggio grading fallito",
                     "Errore durante il salvataggio del fallimento grading carta #" + cardId + ": " + e.getMessage(),
                     Map.of("cardId", cardId, "originalError", errorMessage, "saveError", e.getMessage())
@@ -112,9 +104,7 @@ public class GradingService {
             repo.save(grading);
 
             // ℹ️ Notifica info per grading completato
-            notifications.create(
-                    AdminNotification.Type.GRADING,
-                    AdminNotification.Severity.INFO,
+            notifications.gradingEvent(
                     "Grading completato",
                     "Il grading della carta #" + cardId + " è stato completato con successo",
                     Map.of("cardId", cardId, "result", result)
@@ -122,9 +112,7 @@ public class GradingService {
 
         } catch (Exception e) {
             // 🔴 Notifica anche in caso di errore nel salvataggio del completamento
-            notifications.create(
-                    AdminNotification.Type.GRADING,
-                    AdminNotification.Severity.ERROR,
+            notifications.gradingEvent(
                     "Errore salvataggio grading completato",
                     "Errore durante il salvataggio del completamento grading carta #" + cardId + ": " + e.getMessage(),
                     Map.of("cardId", cardId, "result", result, "saveError", e.getMessage())

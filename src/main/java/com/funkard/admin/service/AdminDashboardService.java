@@ -42,9 +42,9 @@ public class AdminDashboardService {
 
         // 🔔 NOTIFICHE
         AdminDashboardDTO.NotificationStats notif = new AdminDashboardDTO.NotificationStats();
-        notif.setActive(notificationRepository.countByResolvedFalse());
-        notif.setResolved(notificationRepository.countByResolvedTrue());
-        notif.setCritical(notificationRepository.countBySeverity("CRITICAL"));
+            notif.setActive(notificationRepository.countByReadFalse());
+            notif.setResolved(notificationRepository.count() - notificationRepository.countByReadFalse());
+            notif.setCritical(notificationRepository.countByPriority("CRITICAL"));
         dto.setNotifications(notif);
 
         // 📈 MERCATO
@@ -69,8 +69,8 @@ public class AdminDashboardService {
 
         // 🆘 SUPPORTO
         AdminDashboardDTO.SupportStats support = new AdminDashboardDTO.SupportStats();
-        support.setOpen(notificationRepository.countByTypeAndResolvedFalse("SUPPORT"));
-        support.setResolved(notificationRepository.countByTypeAndResolvedTrue("SUPPORT"));
+            support.setOpen(notificationRepository.countByType("SUPPORT"));
+            support.setResolved(notificationRepository.countByType("SUPPORT"));
         dto.setSupport(support);
 
         // 📊 TREND MERCATO (mock se non hai storico ancora)

@@ -1,14 +1,13 @@
 package com.funkard.admin.controller;
 
-import com.funkard.admin.notification.AdminNotification;
-import com.funkard.admin.notification.AdminNotification.Type;
-import com.funkard.admin.notification.AdminNotification.Severity;
-import com.funkard.admin.notification.AdminNotificationRepository;
+import com.funkard.admin.model.AdminNotification;
+import com.funkard.admin.repository.AdminNotificationRepository;
 import com.funkard.admin.service.AdminNotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/notifications")
@@ -24,16 +23,16 @@ public class AdminNotificationController {
 
     @GetMapping("/active")
     public List<AdminNotification> getActive() {
-        return repo.findByResolvedFalseOrderByCreatedAtDesc();
+        return repo.findByReadFalseOrderByCreatedAtDesc();
     }
 
     @GetMapping("/archived")
     public List<AdminNotification> getArchived() {
-        return repo.findByResolvedTrueOrderByCreatedAtDesc();
+        return repo.findAllByOrderByCreatedAtDesc();
     }
 
     @PatchMapping("/{id}/resolve")
-    public ResponseEntity<Void> resolve(@PathVariable Long id) {
+    public ResponseEntity<Void> resolve(@PathVariable UUID id) {
         service.resolve(id);
         return ResponseEntity.noContent().build();
     }
@@ -46,18 +45,7 @@ public class AdminNotificationController {
             @RequestParam(required = false) Boolean resolved,
             @RequestParam(defaultValue = "50") int limit
     ) {
-        Type typeEnum = null;
-        Severity severityEnum = null;
-
-        try {
-            if (type != null) typeEnum = Type.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException ignored) {}
-
-        try {
-            if (severity != null) severityEnum = Severity.valueOf(severity.toUpperCase());
-        } catch (IllegalArgumentException ignored) {}
-
-        List<AdminNotification> result = repo.filter(typeEnum, severityEnum, resolved);
+        List<AdminNotification> result = repo.filter(type, severity, resolved);
 
         if (result.size() > limit) {
             result = result.subList(0, limit);

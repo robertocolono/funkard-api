@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/notifications")
@@ -19,10 +20,10 @@ public class AdminNotificationBatchController {
     }
 
     @PostMapping("/batch/resolve")
-    public ResponseEntity<Map<String, Object>> batchResolve(@RequestBody List<Long> notificationIds) {
+    public ResponseEntity<Map<String, Object>> batchResolve(@RequestBody List<UUID> notificationIds) {
         try {
             int resolvedCount = 0;
-            for (Long id : notificationIds) {
+            for (UUID id : notificationIds) {
                 try {
                     notificationService.resolve(id);
                     resolvedCount++;
@@ -46,16 +47,16 @@ public class AdminNotificationBatchController {
     }
 
     @PostMapping("/batch/archive")
-    public ResponseEntity<Map<String, Object>> batchArchive(@RequestBody List<Long> notificationIds) {
+    public ResponseEntity<Map<String, Object>> batchArchive(@RequestBody List<UUID> notificationIds) {
         // Per ora, archiviare = risolvere
         return batchResolve(notificationIds);
     }
 
     @DeleteMapping("/batch/delete")
-    public ResponseEntity<Map<String, Object>> batchDelete(@RequestBody List<Long> notificationIds) {
+    public ResponseEntity<Map<String, Object>> batchDelete(@RequestBody List<UUID> notificationIds) {
         try {
             int deletedCount = 0;
-            for (Long id : notificationIds) {
+            for (UUID id : notificationIds) {
                 try {
                     // Prima risolvi, poi elimina (se implementi delete)
                     notificationService.resolve(id);

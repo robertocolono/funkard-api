@@ -3,6 +3,7 @@ package com.funkard.admin.repository;
 import com.funkard.admin.model.AdminNotification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -30,16 +31,20 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     @Query("SELECT n FROM AdminNotification n WHERE n.createdAt >= :since ORDER BY n.createdAt DESC")
     List<AdminNotification> findRecentNotifications(LocalDateTime since);
     
-    // 📊 Dashboard statistics methods
-    long countByResolvedFalse();
+    // 🔍 Filtro dinamico per tipo, gravità, stato e limite
+    @Query("""
+        SELECT n FROM AdminNotification n
+        WHERE (:type IS NULL OR n.type = :type)
+        AND (:priority IS NULL OR n.priority = :priority)
+        AND (:read IS NULL OR n.read = :read)
+        ORDER BY n.createdAt DESC
+    """)
+    List<AdminNotification> filter(
+            @Param("type") String type,
+            @Param("priority") String priority,
+            @Param("read") Boolean read
+    );
     
-    long countByResolvedTrue();
-    
-    long countBySeverity(String severity);
-    
-    long countByTypeAndResolvedFalse(String type);
-    
-    long countByTypeAndResolvedTrue(String type);
-    
-    long deleteByResolvedTrueAndCreatedAtBefore(LocalDate date);
+    @Query("DELETE FROM AdminNotification n WHERE n.read = true AND n.createdAt < :cutoff")
+    int deleteAllResolvedBefore(@Param("cutoff") LocalDateTime cutoff);
 }

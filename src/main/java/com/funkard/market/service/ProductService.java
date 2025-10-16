@@ -33,9 +33,7 @@ public class ProductService {
 
             // ⚠️ Controlli base
             if (p.getEstimatedValue() == null || p.getEstimatedValue() <= 0) {
-                notifications.create(
-                        com.funkard.admin.notification.AdminNotification.Type.MARKET,
-                        com.funkard.admin.notification.AdminNotification.Severity.WARN,
+                notifications.marketEvent(
                         "Prodotto senza valore stimato",
                         "Il prodotto \"" + p.getName() + "\" non ha un valore stimato impostato.",
                         Map.of("productId", saved.getId())
@@ -43,9 +41,7 @@ public class ProductService {
             } else if (p.getPrice() != null) {
                 double ratio = p.getPrice() / p.getEstimatedValue();
                 if (ratio > 2.0 || ratio < 0.3) {
-                    notifications.create(
-                            com.funkard.admin.notification.AdminNotification.Type.MARKET,
-                            com.funkard.admin.notification.AdminNotification.Severity.WARN,
+                    notifications.marketEvent(
                             "Prezzo anomalo",
                             "Il prezzo del prodotto \"" + p.getName() + "\" (" + p.getPrice() + "€) " +
                                     "è fuori dal range stimato (" + p.getEstimatedValue() + "€).",
@@ -65,9 +61,7 @@ public class ProductService {
 
             return saved;
         } catch (Exception e) {
-            notifications.create(
-                    com.funkard.admin.notification.AdminNotification.Type.MARKET,
-                    com.funkard.admin.notification.AdminNotification.Severity.ERROR,
+            notifications.marketEvent(
                     "Errore creazione prodotto",
                     e.getMessage(),
                     Map.of("name", p.getName())
