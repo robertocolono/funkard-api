@@ -22,8 +22,8 @@ public class CardService {
 
     public Card create(Card card) {
         Card saved = repo.save(card);
-        // Notifica admin per nuovo prodotto senza storico
-        adminNotificationService.notifyNewProductWithoutTrend(saved.getId());
+               // Notifica admin per nuovo prodotto senza storico
+               adminNotificationService.addNotification("new_card", "Nuova carta aggiunta", "Carta: " + saved.getName(), "normal");
         return saved;
     }
 }

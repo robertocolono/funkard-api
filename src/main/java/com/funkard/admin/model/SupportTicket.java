@@ -5,8 +5,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "support_ticket")
+@Table(name = "support_tickets")
 public class SupportTicket {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -14,55 +15,81 @@ public class SupportTicket {
     @Column(name = "user_id")
     private String userId;
     
+    @Column(name = "user_email")
+    private String userEmail;
+    
     @Column(name = "subject")
     private String subject;
     
-    @Column(name = "message", columnDefinition = "TEXT")
+    @Column(name = "message")
     private String message;
     
     @Column(name = "status")
-    private String status = "open";
+    private String status = "open"; // "open", "in_progress", "resolved", "closed"
+    
+    @Column(name = "priority")
+    private String priority = "normal"; // "low", "normal", "high", "urgent"
+    
+    @Column(name = "category")
+    private String category; // "technical", "billing", "general", "grading"
+    
+    @Column(name = "admin_response")
+    private String adminResponse;
     
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
     
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
+    private LocalDateTime updatedAt = LocalDateTime.now();
+    
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+    
     // Constructors
     public SupportTicket() {}
-
-    public SupportTicket(String userId, String subject, String message) {
+    
+    public SupportTicket(String userId, String userEmail, String subject, String message, String category) {
         this.userId = userId;
+        this.userEmail = userEmail;
         this.subject = subject;
         this.message = message;
-        this.status = "open";
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.category = category;
     }
-
+    
     // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-
+    
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
-
+    
+    public String getUserEmail() { return userEmail; }
+    public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
+    
     public String getSubject() { return subject; }
     public void setSubject(String subject) { this.subject = subject; }
-
+    
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
-
+    
     public String getStatus() { return status; }
-    public void setStatus(String status) { 
-        this.status = status; 
-        this.updatedAt = LocalDateTime.now();
-    }
-
+    public void setStatus(String status) { this.status = status; }
+    
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+    
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    
+    public String getAdminResponse() { return adminResponse; }
+    public void setAdminResponse(String adminResponse) { this.adminResponse = adminResponse; }
+    
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
+    
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public LocalDateTime getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
 }

@@ -1,53 +1,69 @@
 package com.funkard.admin.service;
 
+import com.funkard.admin.dto.NotificationDTO;
 import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.repository.AdminNotificationRepository;
-import com.funkard.repository.CardRepository;
-import com.funkard.market.trend.TrendRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AdminNotificationService {
-
-    private final AdminNotificationRepository notificationRepo;
-    private final CardRepository cardRepo;
-    private final TrendRepository trendRepo;
-
-    public AdminNotificationService(AdminNotificationRepository notificationRepo,
-                                    CardRepository cardRepo,
-                                    TrendRepository trendRepo) {
-        this.notificationRepo = notificationRepo;
-        this.cardRepo = cardRepo;
-        this.trendRepo = trendRepo;
+    
+    private final AdminNotificationRepository repository;
+    
+    public AdminNotificationService(AdminNotificationRepository repository) {
+        this.repository = repository;
     }
-
-    // 🔹 Restituisce tutte le notifiche attive
-    public List<AdminNotification> getActive() {
-        return notificationRepo.findByResolvedFalseOrderByCreatedAtDesc();
+    
+    // 🔹 Lista tutte le notifiche
+    public List<NotificationDTO> getAllNotifications() {
+        return repository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(NotificationDTO::fromEntity)
+                .toList();
     }
-
-    // 🔹 Aggiunge nuova notifica
-    public void notifyNewProductWithoutTrend(String productId) {
-        // Verifica se esiste un trend per questo prodotto
-        boolean exists = trendRepo.existsByItemNameAndCategory(productId, "card");
-        var product = cardRepo.findById(productId);
-        
-        if (product.isPresent() && !exists) {
-            // Controlla se il prodotto ha un valore stimato
-            // Assumiamo che se non ha trend, potrebbe aver bisogno di una stima manuale
-            notificationRepo.save(new AdminNotification(productId, "Nuovo prodotto senza storico prezzi"));
-        }
+    
+    // 🔹 Lista notifiche non lette
+    public List<NotificationDTO> getUnreadNotifications() {
+        return repository.findByReadFalseOrderByCreatedAtDesc()
+                .stream()
+                .map(NotificationDTO::fromEntity)
+                .toList();
     }
-
-    // 🔹 Marca come risolta
-    public void markResolved(String id) {
-        var notif = notificationRepo.findById(java.util.UUID.fromString(id));
-        notif.ifPresent(n -> { 
-            n.setResolved(true); 
-            notificationRepo.save(n); 
-        });
+    
+    // 🔹 Aggiungi nuova notifica
+    public NotificationDTO addNotification(String type, String title, String message, String priority) {
+        AdminNotification notification = new AdminNotification(type, title, message, priority);
+        AdminNotification saved = repository.save(notification);
+        return NotificationDTO.fromEntity(saved);
+    }
+    
+    // 🔹 Marca come letta
+    public void markAsRead(UUID id) {
+        AdminNotification notification = repository.findById(id).orElseThrow();
+        notification.setRead(true);
+        notification.setReadAt(LocalDateTime.now());
+        repository.save(notification);
+    }
+    
+    // 🔹 Elimina notifica
+    public void deleteNotification(UUID id) {
+        repository.deleteById(id);
+    }
+    
+    // 🔹 Conta notifiche non lette
+    public long getUnreadCount() {
+        return repository.countByReadFalse();
+    }
+    
+    // 🔹 Notifiche per tipo
+    public List<NotificationDTO> getNotificationsByType(String type) {
+        return repository.findByTypeOrderByCreatedAtDesc(type)
+                .stream()
+                .map(NotificationDTO::fromEntity)
+                .toList();
     }
 }

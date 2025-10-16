@@ -25,4 +25,6 @@ public interface MarketListingRepository extends JpaRepository<MarketListing, Lo
     List<MarketListing> findLastSold(String itemName, String category);
     
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    
+    long countBySoldTrue();
 }

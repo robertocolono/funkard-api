@@ -45,7 +45,7 @@ public class CollectionController {
         }
         Card saved = cardRepository.save(card);
         // Notifica admin per nuovo prodotto senza storico
-        adminNotificationService.notifyNewProductWithoutTrend(saved.getId());
+        adminNotificationService.addNotification("new_card", "Nuova carta in collezione", "Carta: " + saved.getName(), "normal");
         return ResponseEntity.ok(saved);
     }
 
