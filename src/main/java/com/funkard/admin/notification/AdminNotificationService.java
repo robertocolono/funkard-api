@@ -118,4 +118,33 @@ public class AdminNotificationService {
     public long countByType(String type) {
         return repository.countByType(type);
     }
+
+    // 📁 Metodi per archivio
+    public List<AdminNotificationArchive> getArchive() {
+        return archiveRepository.findAll()
+                .stream()
+                .sorted((a, b) -> b.getResolvedAt().compareTo(a.getResolvedAt()))
+                .toList();
+    }
+
+    public List<AdminNotificationArchive> getArchiveByType(String type) {
+        return archiveRepository.findByType(type)
+                .stream()
+                .sorted((a, b) -> b.getResolvedAt().compareTo(a.getResolvedAt()))
+                .toList();
+    }
+
+    public List<AdminNotificationArchive> getArchiveByReference(String referenceType, Long referenceId) {
+        return archiveRepository.findByReferenceTypeAndReferenceId(referenceType, referenceId)
+                .stream()
+                .sorted((a, b) -> b.getResolvedAt().compareTo(a.getResolvedAt()))
+                .toList();
+    }
+
+    public List<AdminNotificationArchive> getRecentArchive(int days) {
+        return archiveRepository.findRecentArchived(LocalDateTime.now().minusDays(days))
+                .stream()
+                .sorted((a, b) -> b.getResolvedAt().compareTo(a.getResolvedAt()))
+                .toList();
+    }
 }

@@ -99,4 +99,28 @@ public class AdminNotificationController {
         );
         return ResponseEntity.ok(stats);
     }
+
+    // 📁 Endpoint archivio
+    @GetMapping("/archive")
+    public ResponseEntity<List<AdminNotificationArchive>> getArchive() {
+        return ResponseEntity.ok(service.getArchive());
+    }
+
+    @GetMapping("/archive/type/{type}")
+    public ResponseEntity<List<AdminNotificationArchive>> getArchiveByType(@PathVariable String type) {
+        return ResponseEntity.ok(service.getArchiveByType(type));
+    }
+
+    @GetMapping("/archive/reference/{referenceType}/{referenceId}")
+    public ResponseEntity<List<AdminNotificationArchive>> getArchiveByReference(
+            @PathVariable String referenceType, 
+            @PathVariable Long referenceId) {
+        return ResponseEntity.ok(service.getArchiveByReference(referenceType, referenceId));
+    }
+
+    @GetMapping("/archive/recent")
+    public ResponseEntity<List<AdminNotificationArchive>> getRecentArchive(
+            @RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(service.getRecentArchive(days));
+    }
 }
