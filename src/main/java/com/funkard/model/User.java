@@ -32,6 +32,7 @@ public class User {
 
     private Boolean accettaTermini;
     private Boolean verified = false;
+    private Boolean flagged = false;
 
     // Campi esistenti per compatibilità
     private String username;
