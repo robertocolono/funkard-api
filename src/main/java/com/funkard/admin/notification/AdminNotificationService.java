@@ -10,6 +10,7 @@ import java.util.UUID;
 public class AdminNotificationService {
 
     private final AdminNotificationRepository repository;
+    private final AdminNotificationStreamController streamController;
 
     public List<AdminNotification> getAll() {
         return repository.findAll();
@@ -20,7 +21,9 @@ public class AdminNotificationService {
     }
 
     public AdminNotification create(AdminNotification notification) {
-        return repository.save(notification);
+        AdminNotification saved = repository.save(notification);
+        streamController.sendNotification(saved); // 🔔 invio in tempo reale
+        return saved;
     }
 
     public void markAsRead(UUID id) {

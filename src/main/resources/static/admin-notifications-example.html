@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funkard Admin - Notifiche in Tempo Reale</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .notification {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #007bff;
+        }
+        .notification.warning {
+            border-left-color: #ffc107;
+        }
+        .notification.error {
+            border-left-color: #dc3545;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Funkard Admin - Notifiche in Tempo Reale</h1>
+    
+    <div id="status" class="status disconnected">
+        ❌ Disconnesso dal server
+    </div>
+    
+    <div>
+        <button onclick="connect()">🔌 Connetti</button>
+        <button onclick="disconnect()">❌ Disconnetti</button>
+        <button onclick="testNotification()">🧪 Test Notifica</button>
+        <button onclick="clearNotifications()">🗑️ Pulisci</button>
+    </div>
+    
+    <h2>📋 Notifiche Ricevute</h2>
+    <div id="notifications"></div>
+
+    <script>
+        let eventSource = null;
+        const notificationsContainer = document.getElementById('notifications');
+        const statusElement = document.getElementById('status');
+
+        function updateStatus(connected) {
+            if (connected) {
+                statusElement.className = 'status connected';
+                statusElement.textContent = '✅ Connesso al server - Notifiche in tempo reale attive';
+            } else {
+                statusElement.className = 'status disconnected';
+                statusElement.textContent = '❌ Disconnesso dal server';
+            }
+        }
+
+        function connect() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            // Connessione al Server-Sent Events endpoint
+            eventSource = new EventSource('/api/admin/notifications/stream');
+            
+            eventSource.onopen = function(event) {
+                console.log('🔌 Connesso al server');
+                updateStatus(true);
+            };
+
+            eventSource.onmessage = function(event) {
+                console.log('📨 Messaggio ricevuto:', event.data);
+            };
+
+            // Listener specifico per eventi di tipo "notification"
+            eventSource.addEventListener('notification', function(event) {
+                console.log('🔔 Notifica ricevuta:', event.data);
+                const notification = JSON.parse(event.data);
+                addNotification(notification);
+            });
+
+            eventSource.onerror = function(event) {
+                console.error('❌ Errore connessione:', event);
+                updateStatus(false);
+            };
+        }
+
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                updateStatus(false);
+            }
+        }
+
+        function addNotification(notification) {
+            const notificationElement = document.createElement('div');
+            notificationElement.className = `notification ${notification.type.toLowerCase()}`;
+            
+            const timestamp = new Date(notification.createdAt).toLocaleString('it-IT');
+            
+            notificationElement.innerHTML = `
+                <h3>${notification.title}</h3>
+                <p>${notification.message}</p>
+                <small>
+                    <strong>Tipo:</strong> ${notification.type} | 
+                    <strong>Data:</strong> ${timestamp} | 
+                    <strong>ID:</strong> ${notification.id}
+                </small>
+            `;
+            
+            notificationsContainer.insertBefore(notificationElement, notificationsContainer.firstChild);
+        }
+
+        function testNotification() {
+            // Simula una notifica di test
+            const testNotification = {
+                id: 'test-' + Date.now(),
+                title: '🧪 Notifica di Test',
+                message: 'Questa è una notifica di test per verificare il funzionamento del sistema.',
+                type: 'INFO',
+                isRead: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            addNotification(testNotification);
+        }
+
+        function clearNotifications() {
+            notificationsContainer.innerHTML = '';
+        }
+
+        // Auto-connect al caricamento della pagina
+        window.addEventListener('load', function() {
+            console.log('🚀 Pagina caricata, tentativo di connessione...');
+            connect();
+        });
+
+        // Cleanup alla chiusura della pagina
+        window.addEventListener('beforeunload', function() {
+            disconnect();
+        });
+    </script>
+</body>
+</html>
