@@ -75,6 +75,12 @@ public class AdminNotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/resolve-and-archive")
+    public ResponseEntity<Void> resolveAndArchive(@PathVariable Long id) {
+        service.resolveAndArchive(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);

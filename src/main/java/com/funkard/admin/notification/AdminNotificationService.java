@@ -88,6 +88,21 @@ public class AdminNotificationService {
         }
     }
 
+    public void resolveAndArchive(Long id) {
+        Optional<AdminNotification> notificationOpt = repository.findById(id);
+        if (notificationOpt.isPresent()) {
+            AdminNotification notification = notificationOpt.get();
+            
+            // Segna come risolta
+            notification.setResolved(true);
+            notification.setResolvedAt(LocalDateTime.now());
+            repository.save(notification);
+            
+            // Archivia automaticamente
+            archiveNotification(id);
+        }
+    }
+
     public void delete(Long id) {
         repository.deleteById(id);
     }
