@@ -1,11 +1,13 @@
 package com.funkard.controller;
 
-import com.funkard.admin.service.AdminNotificationService;
+import com.funkard.admin.notification.AdminNotification;
+import com.funkard.admin.notification.AdminNotificationService;
 import com.funkard.model.Card;
 import com.funkard.model.UserCard;
 import com.funkard.repository.CardRepository;
 import com.funkard.repository.UserCardRepository;
 import com.funkard.service.R2Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,19 +18,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/collection")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class CollectionController {
 
     private final CardRepository cardRepository;
     private final UserCardRepository userCardRepository;
     private final R2Service r2Service;
     private final AdminNotificationService adminNotificationService;
-
-    public CollectionController(CardRepository cardRepository, UserCardRepository userCardRepository, R2Service r2Service, AdminNotificationService adminNotificationService) {
-        this.cardRepository = cardRepository;
-        this.userCardRepository = userCardRepository;
-        this.r2Service = r2Service;
-        this.adminNotificationService = adminNotificationService;
-    }
 
     // Crea una card nella collezione, opzionalmente caricando un'immagine
     @PostMapping(consumes = {"multipart/form-data"})
@@ -44,8 +40,16 @@ public class CollectionController {
             card.setSource("collection");
         }
         Card saved = cardRepository.save(card);
-        // Notifica admin per nuovo prodotto senza storico
-        adminNotificationService.addNotification("new_card", "Nuova carta in collezione", "Carta: " + saved.getName(), "normal");
+        
+        // 🔔 Notifica admin per nuova carta in collezione
+        AdminNotification notification = AdminNotification.builder()
+                .title("Nuova carta in collezione")
+                .message("Carta: " + saved.getName())
+                .type(AdminNotification.NotificationType.INFO)
+                .build();
+
+        adminNotificationService.create(notification);
+        
         return ResponseEntity.ok(saved);
     }
 
