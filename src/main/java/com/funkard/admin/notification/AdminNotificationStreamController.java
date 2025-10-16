@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @RequiredArgsConstructor
 public class AdminNotificationStreamController {
 
-    private final AdminNotificationService adminNotificationService;
+    // private final AdminNotificationService adminNotificationService; // Temporarily disabled
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)

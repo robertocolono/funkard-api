@@ -1,69 +1,65 @@
 package com.funkard.admin.service;
 
-import com.funkard.admin.dto.NotificationDTO;
-import com.funkard.admin.model.AdminNotification;
-import com.funkard.admin.repository.AdminNotificationRepository;
+import com.funkard.admin.notification.AdminNotification;
+import com.funkard.admin.notification.AdminNotification.Severity;
+import com.funkard.admin.notification.AdminNotification.Type;
+import com.funkard.admin.notification.AdminNotificationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 @Service
 public class AdminNotificationService {
-    
-    private final AdminNotificationRepository repository;
-    
-    public AdminNotificationService(AdminNotificationRepository repository) {
-        this.repository = repository;
+
+    private final AdminNotificationRepository repo;
+
+    public AdminNotificationService(AdminNotificationRepository repo) {
+        this.repo = repo;
     }
-    
-    // 🔹 Lista tutte le notifiche
-    public List<NotificationDTO> getAllNotifications() {
-        return repository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(NotificationDTO::fromEntity)
-                .toList();
+
+    @Transactional
+    public AdminNotification create(Type type, Severity severity, String title, String message, Map<String, Object> metadata) {
+        AdminNotification n = new AdminNotification();
+        n.setType(type);
+        n.setSeverity(severity);
+        n.setTitle(title);
+        n.setMessage(message);
+        n.setMetadata(metadata);
+        return repo.save(n);
     }
-    
-    // 🔹 Lista notifiche non lette
-    public List<NotificationDTO> getUnreadNotifications() {
-        return repository.findByReadFalseOrderByCreatedAtDesc()
-                .stream()
-                .map(NotificationDTO::fromEntity)
-                .toList();
+
+    // Helpers rapidi
+    public AdminNotification systemError(String title, String message, Map<String,Object> meta) {
+        return create(Type.SYSTEM, Severity.ERROR, title, message, meta);
     }
-    
-    // 🔹 Aggiungi nuova notifica
-    public NotificationDTO addNotification(String type, String title, String message, String priority) {
-        AdminNotification notification = new AdminNotification(type, title, message, priority);
-        AdminNotification saved = repository.save(notification);
-        return NotificationDTO.fromEntity(saved);
+
+    public AdminNotification systemWarn(String title, String message, Map<String,Object> meta) {
+        return create(Type.SYSTEM, Severity.WARN, title, message, meta);
     }
-    
-    // 🔹 Marca come letta
-    public void markAsRead(UUID id) {
-        AdminNotification notification = repository.findById(id).orElseThrow();
-        notification.setRead(true);
-        notification.setReadAt(LocalDateTime.now());
-        repository.save(notification);
+
+    public AdminNotification marketEvent(String title, String message, Map<String,Object> meta) {
+        return create(Type.MARKET, Severity.INFO, title, message, meta);
     }
-    
-    // 🔹 Elimina notifica
-    public void deleteNotification(UUID id) {
-        repository.deleteById(id);
+
+    public AdminNotification gradingEvent(String title, String message, Map<String,Object> meta) {
+        return create(Type.GRADING, Severity.INFO, title, message, meta);
     }
-    
-    // 🔹 Conta notifiche non lette
-    public long getUnreadCount() {
-        return repository.countByReadFalse();
+
+    public AdminNotification supportTicket(String title, String message, Map<String,Object> meta) {
+        return create(Type.SUPPORT, Severity.INFO, title, message, meta);
     }
-    
-    // 🔹 Notifiche per tipo
-    public List<NotificationDTO> getNotificationsByType(String type) {
-        return repository.findByTypeOrderByCreatedAtDesc(type)
-                .stream()
-                .map(NotificationDTO::fromEntity)
-                .toList();
+
+    @Transactional
+    public void resolve(Long id) {
+        var nOpt = repo.findById(id);
+        if (nOpt.isEmpty()) return;
+        var n = nOpt.get();
+        if (!n.isResolved()) {
+            n.setResolved(true);
+            n.setResolvedAt(LocalDateTime.now());
+            repo.save(n);
+        }
     }
 }

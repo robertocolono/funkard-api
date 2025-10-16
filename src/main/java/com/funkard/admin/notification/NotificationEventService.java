@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class NotificationEventService {
 
-    private final AdminNotificationService adminNotificationService;
+    // private final AdminNotificationService adminNotificationService; // Temporarily disabled
     private final UserNotificationService userNotificationService;
 
     // 🔔 Eventi automatici per admin

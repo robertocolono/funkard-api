@@ -80,7 +80,7 @@ public class AdminNotificationCleanupService {
         try {
             LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
             
-            long resolvedCount = repository.countByResolvedTrue();
+            long resolvedCount = repository.count();
             long archivedCount = archiveRepository.count();
             
             System.out.println("📊 [CLEANUP STATS] Stato attuale:");

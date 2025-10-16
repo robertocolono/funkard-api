@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class NotificationOptimizationService {
 
-    private final AdminNotificationService adminNotificationService;
+    // private final AdminNotificationService adminNotificationService; // Temporarily disabled
     private final UserNotificationService userNotificationService;
     private final AdminNotificationArchiveService archiveService;
 

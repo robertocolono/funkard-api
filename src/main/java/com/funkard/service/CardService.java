@@ -1,7 +1,7 @@
 package com.funkard.service;
 
 import com.funkard.admin.notification.AdminNotification;
-import com.funkard.admin.notification.AdminNotificationService;
+import com.funkard.admin.service.AdminNotificationService;
 import com.funkard.admin.notification.NotificationEventService;
 import com.funkard.model.Card;
 import com.funkard.model.User;
