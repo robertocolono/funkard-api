@@ -31,6 +31,9 @@ public class MarketListing {
     @Column(name = "sold")
     private boolean sold = false;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
     // Constructors
     public MarketListing() {}
 
@@ -68,4 +71,7 @@ public class MarketListing {
 
     public boolean isSold() { return sold; }
     public void setSold(boolean sold) { this.sold = sold; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
