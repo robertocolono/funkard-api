@@ -42,13 +42,13 @@ public class CollectionController {
         Card saved = cardRepository.save(card);
         
         // 🔔 Notifica admin per nuova carta in collezione
-        AdminNotification notification = AdminNotification.builder()
-                .title("Nuova carta in collezione")
-                .message("Carta: " + saved.getName())
-                .type(AdminNotification.NotificationType.INFO)
-                .build();
-
-        adminNotificationService.create(notification);
+        adminNotificationService.createWithReference(
+            "Nuova carta in collezione",
+            "Carta: " + saved.getName(),
+            "INFO",
+            "CARD",
+            Long.valueOf(saved.getId())
+        );
         
         return ResponseEntity.ok(saved);
     }

@@ -2,14 +2,16 @@ package com.funkard.admin.notification;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AdminNotificationService {
 
     private final AdminNotificationRepository repository;
+    private final AdminNotificationArchiveRepository archiveRepository;
     private final AdminNotificationStreamController streamController;
 
     public List<AdminNotification> getAll() {
@@ -17,7 +19,19 @@ public class AdminNotificationService {
     }
 
     public List<AdminNotification> getUnread() {
-        return repository.findByIsReadFalseOrderByCreatedAtDesc();
+        return repository.findByReadFalseOrderByCreatedAtDesc();
+    }
+
+    public List<AdminNotification> getUnresolved() {
+        return repository.findByResolvedFalseOrderByCreatedAtDesc();
+    }
+
+    public List<AdminNotification> getByReference(String referenceType, Long referenceId) {
+        return repository.findByReferenceTypeAndReferenceId(referenceType, referenceId);
+    }
+
+    public List<AdminNotification> getByType(String type) {
+        return repository.findByType(type);
     }
 
     public AdminNotification create(AdminNotification notification) {
@@ -26,14 +40,67 @@ public class AdminNotificationService {
         return saved;
     }
 
-    public void markAsRead(UUID id) {
+    public AdminNotification createWithReference(String title, String message, String type, 
+                                                String referenceType, Long referenceId) {
+        AdminNotification notification = AdminNotification.builder()
+                .title(title)
+                .message(message)
+                .type(type)
+                .referenceType(referenceType)
+                .referenceId(referenceId)
+                .build();
+        
+        return create(notification);
+    }
+
+    public void markAsRead(Long id) {
         repository.findById(id).ifPresent(n -> {
             n.setRead(true);
             repository.save(n);
         });
     }
 
-    public void delete(UUID id) {
+    public void markAsResolved(Long id) {
+        repository.findById(id).ifPresent(n -> {
+            n.setResolved(true);
+            n.setResolvedAt(LocalDateTime.now());
+            repository.save(n);
+        });
+    }
+
+    public void archiveNotification(Long id) {
+        Optional<AdminNotification> notificationOpt = repository.findById(id);
+        if (notificationOpt.isPresent()) {
+            AdminNotification notification = notificationOpt.get();
+            
+            // Crea archivio
+            AdminNotificationArchive archive = AdminNotificationArchive.builder()
+                    .title(notification.getTitle())
+                    .message(notification.getMessage())
+                    .type(notification.getType())
+                    .referenceType(notification.getReferenceType())
+                    .referenceId(notification.getReferenceId())
+                    .resolvedAt(notification.getResolvedAt())
+                    .build();
+            
+            archiveRepository.save(archive);
+            repository.deleteById(id);
+        }
+    }
+
+    public void delete(Long id) {
         repository.deleteById(id);
+    }
+
+    public long countUnread() {
+        return repository.countByReadFalse();
+    }
+
+    public long countUnresolved() {
+        return repository.countByResolvedFalse();
+    }
+
+    public long countByType(String type) {
+        return repository.countByType(type);
     }
 }

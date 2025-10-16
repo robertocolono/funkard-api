@@ -5,13 +5,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "admin_notifications")
+@Table(name = "user_notifications")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminNotification {
+public class UserNotification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,7 +19,7 @@ public class AdminNotification {
 
     private String title;
     private String message;
-    private String type; // INFO | WARNING | ERROR | SUPPORT
+    private String type; // INFO | WARNING | ERROR | SUCCESS
     
     @Builder.Default
     private boolean resolved = false;
@@ -27,8 +27,10 @@ public class AdminNotification {
     @Builder.Default
     private boolean read = false;
 
-    private String referenceType; // es. "CARD", "USER", "TRANSACTION"
+    private String referenceType; // es. "CARD", "TRANSACTION", "GRADING"
     private Long referenceId;     // id dell'oggetto collegato
+    
+    private String userId;        // ID dell'utente destinatario
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -36,6 +38,6 @@ public class AdminNotification {
     private LocalDateTime resolvedAt;
 
     public enum NotificationType {
-        INFO, WARNING, ERROR, SUPPORT
+        INFO, WARNING, ERROR, SUCCESS
     }
 }

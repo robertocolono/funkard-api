@@ -23,15 +23,14 @@ public class CardService {
     public Card createCard(Card card, User user) {
         Card saved = cardRepository.save(card);
 
-        // 🔔 Crea una notifica admin automatica
-        AdminNotification notification = AdminNotification.builder()
-                .title("Nuova carta caricata")
-                .message("Utente " + user.getUsername() +
-                         " ha caricato una nuova carta: " + saved.getName())
-                .type(AdminNotification.NotificationType.INFO)
-                .build();
-
-        adminNotificationService.create(notification);
+        // 🔔 Crea una notifica admin automatica con riferimento
+        adminNotificationService.createWithReference(
+            "Nuova carta caricata",
+            "Utente " + user.getUsername() + " ha caricato una nuova carta: " + saved.getName(),
+            "INFO",
+            "CARD",
+            Long.valueOf(saved.getId())
+        );
 
         return saved;
     }
@@ -41,13 +40,13 @@ public class CardService {
         Card saved = cardRepository.save(card);
         
         // 🔔 Notifica admin per nuovo prodotto senza storico
-        AdminNotification notification = AdminNotification.builder()
-                .title("Nuova carta aggiunta")
-                .message("Carta: " + saved.getName())
-                .type(AdminNotification.NotificationType.INFO)
-                .build();
-
-        adminNotificationService.create(notification);
+        adminNotificationService.createWithReference(
+            "Nuova carta aggiunta",
+            "Carta: " + saved.getName(),
+            "INFO",
+            "CARD",
+            Long.valueOf(saved.getId())
+        );
         
         return saved;
     }
