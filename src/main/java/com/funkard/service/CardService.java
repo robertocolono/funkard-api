@@ -1,8 +1,7 @@
 package com.funkard.service;
 
-import com.funkard.admin.notification.AdminNotification;
 import com.funkard.admin.service.AdminNotificationService;
-import com.funkard.admin.notification.NotificationEventService;
+import com.funkard.admin.model.AdminNotification;
 import com.funkard.model.Card;
 import com.funkard.model.User;
 import com.funkard.repository.CardRepository;
@@ -16,7 +15,6 @@ public class CardService {
 
     private final CardRepository cardRepository;
     private final AdminNotificationService adminNotificationService;
-    private final NotificationEventService eventService;
 
     public List<Card> getAll() {
         return cardRepository.findAll();
@@ -25,8 +23,12 @@ public class CardService {
     public Card createCard(Card card, User user) {
         Card saved = cardRepository.save(card);
 
-        // 🔔 Notifica automatica via event service
-        eventService.notifyNewCard(saved.getName(), user.getUsername(), Long.valueOf(saved.getId()));
+        // 🔔 Notifica automatica per nuova carta
+        adminNotificationService.marketEvent(
+            "Nuova carta aggiunta",
+            "Carta: " + saved.getName() + " aggiunta da " + user.getUsername(),
+            java.util.Map.of("cardId", saved.getId(), "cardName", saved.getName(), "userId", user.getId())
+        );
 
         return saved;
     }
@@ -36,12 +38,10 @@ public class CardService {
         Card saved = cardRepository.save(card);
         
         // 🔔 Notifica admin per nuovo prodotto senza storico
-        adminNotificationService.createWithReference(
+        adminNotificationService.marketEvent(
             "Nuova carta aggiunta",
             "Carta: " + saved.getName(),
-            "INFO",
-            "CARD",
-            Long.valueOf(saved.getId())
+            java.util.Map.of("cardId", saved.getId(), "cardName", saved.getName())
         );
         
         return saved;

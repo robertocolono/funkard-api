@@ -1,6 +1,6 @@
 package com.funkard.controller;
 
-import com.funkard.admin.notification.AdminNotification;
+import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.service.AdminNotificationService;
 import com.funkard.model.Card;
 import com.funkard.model.UserCard;
@@ -42,12 +42,10 @@ public class CollectionController {
         Card saved = cardRepository.save(card);
         
         // 🔔 Notifica admin per nuova carta in collezione
-        adminNotificationService.createWithReference(
+        adminNotificationService.marketEvent(
             "Nuova carta in collezione",
             "Carta: " + saved.getName(),
-            "INFO",
-            "CARD",
-            Long.valueOf(saved.getId())
+            java.util.Map.of("cardId", saved.getId(), "cardName", saved.getName())
         );
         
         return ResponseEntity.ok(saved);
