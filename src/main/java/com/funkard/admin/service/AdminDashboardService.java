@@ -11,153 +11,76 @@ import com.funkard.repository.UserRepository;
 import com.funkard.model.User;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class AdminDashboardService {
 
-    private final AdminNotificationRepository notificationRepo;
-    private final GradingRepository gradingRepo;
-    private final ProductRepository productRepo;
-    private final UserRepository userRepo;
+    private final AdminNotificationRepository notificationRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final GradingRepository gradingRepository;
 
     public AdminDashboardService(
-            AdminNotificationRepository notificationRepo,
-            GradingRepository gradingRepo,
-            ProductRepository productRepo,
-            UserRepository userRepo) {
-        this.notificationRepo = notificationRepo;
-        this.gradingRepo = gradingRepo;
-        this.productRepo = productRepo;
-        this.userRepo = userRepo;
+        AdminNotificationRepository notificationRepository,
+        ProductRepository productRepository,
+        UserRepository userRepository,
+        GradingRepository gradingRepository
+    ) {
+        this.notificationRepository = notificationRepository;
+        this.productRepository = productRepository;
+        this.userRepository = userRepository;
+        this.gradingRepository = gradingRepository;
     }
 
-    public AdminDashboardDTO getDashboardStats() {
-        return AdminDashboardDTO.builder()
-                .notifications(getNotificationStats())
-                .market(getMarketStats())
-                .grading(getGradingStats())
-                .users(getUserStats())
-                .support(getSupportStats())
-                .marketTrend(getMarketTrend())
-                .build();
-    }
+    public AdminDashboardDTO getDashboard() {
+        AdminDashboardDTO dto = new AdminDashboardDTO();
 
-    private AdminDashboardDTO.NotificationStats getNotificationStats() {
-        List<AdminNotification> active = notificationRepo.findByResolvedFalseOrderByCreatedAtDesc();
-        List<AdminNotification> resolved = notificationRepo.findByResolvedTrueOrderByCreatedAtDesc();
-        
-        long critical = active.stream()
-                .filter(n -> n.getSeverity() == AdminNotification.Severity.CRITICAL)
-                .count();
+        // 🔔 NOTIFICHE
+        AdminDashboardDTO.NotificationStats notif = new AdminDashboardDTO.NotificationStats();
+        notif.setActive(notificationRepository.countByResolvedFalse());
+        notif.setResolved(notificationRepository.countByResolvedTrue());
+        notif.setCritical(notificationRepository.countBySeverity("CRITICAL"));
+        dto.setNotifications(notif);
 
-        return AdminDashboardDTO.NotificationStats.builder()
-                .active(active.size())
-                .resolved(resolved.size())
-                .critical((int) critical)
-                .build();
-    }
+        // 📈 MERCATO
+        AdminDashboardDTO.MarketStats market = new AdminDashboardDTO.MarketStats();
+        market.setTotalProducts(productRepository.count());
+        market.setNewThisWeek(productRepository.countByCreatedAtAfter(LocalDate.now().minusDays(7)));
+        market.setAvgValueChange(productRepository.calculateAverageValueChangeLast30Days());
+        dto.setMarket(market);
 
-    private AdminDashboardDTO.MarketStats getMarketStats() {
-        List<Product> allProducts = productRepo.findAll();
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        
-        long newThisWeek = allProducts.stream()
-                .filter(p -> p.getCreatedAt() != null && p.getCreatedAt().isAfter(oneWeekAgo))
-                .count();
+        // 🧾 GRADING
+        AdminDashboardDTO.GradingStats grading = new AdminDashboardDTO.GradingStats();
+        grading.setTotal(gradingRepository.count());
+        grading.setErrors(gradingRepository.countByStatus("FAILED"));
+        grading.setInProgress(gradingRepository.countByStatus("IN_PROGRESS"));
+        dto.setGrading(grading);
 
-        // Calcolo cambio valore medio (esempio semplificato)
-        double avgValueChange = allProducts.stream()
-                .filter(p -> p.getPrice() != null && p.getEstimatedValue() != null)
-                .mapToDouble(p -> {
-                    double ratio = p.getPrice() / p.getEstimatedValue();
-                    return (ratio - 1.0) * 100; // Percentuale di cambio
-                })
-                .average()
-                .orElse(0.0);
+        // 🧍 UTENTI
+        AdminDashboardDTO.UserStats users = new AdminDashboardDTO.UserStats();
+        users.setTotal(userRepository.count());
+        users.setFlagged(userRepository.countByFlaggedTrue());
+        dto.setUsers(users);
 
-        return AdminDashboardDTO.MarketStats.builder()
-                .totalProducts(allProducts.size())
-                .avgValueChange(Math.round(avgValueChange * 10.0) / 10.0)
-                .newThisWeek((int) newThisWeek)
-                .build();
-    }
+        // 🆘 SUPPORTO
+        AdminDashboardDTO.SupportStats support = new AdminDashboardDTO.SupportStats();
+        support.setOpen(notificationRepository.countByTypeAndResolvedFalse("SUPPORT"));
+        support.setResolved(notificationRepository.countByTypeAndResolvedTrue("SUPPORT"));
+        dto.setSupport(support);
 
-    private AdminDashboardDTO.GradingStats getGradingStats() {
-        List<GradingRequest> allGradings = gradingRepo.findAll();
-        
-        long errors = allGradings.stream()
-                .filter(g -> "FAILED".equals(g.getStatus()))
-                .count();
-                
-        long inProgress = allGradings.stream()
-                .filter(g -> "IN_PROGRESS".equals(g.getStatus()))
-                .count();
-
-        return AdminDashboardDTO.GradingStats.builder()
-                .total(allGradings.size())
-                .errors((int) errors)
-                .inProgress((int) inProgress)
-                .build();
-    }
-
-    private AdminDashboardDTO.UserStats getUserStats() {
-        List<User> allUsers = userRepo.findAll();
-        
-        // Esempio: utenti "flagged" (potresti avere un campo specifico)
-        long flagged = allUsers.stream()
-                .filter(u -> u.getEmail() != null && u.getEmail().contains("flagged"))
-                .count();
-
-        return AdminDashboardDTO.UserStats.builder()
-                .total(allUsers.size())
-                .flagged((int) flagged)
-                .build();
-    }
-
-    private AdminDashboardDTO.SupportStats getSupportStats() {
-        // Esempio semplificato - potresti avere un SupportTicketRepository
-        // Per ora simuliamo con le notifiche di supporto
-        List<AdminNotification> supportNotifications = notificationRepo.findAll().stream()
-                .filter(n -> n.getType() == AdminNotification.Type.SUPPORT)
-                .toList();
-
-        long open = supportNotifications.stream()
-                .filter(n -> !n.isResolved())
-                .count();
-                
-        long resolved = supportNotifications.stream()
-                .filter(AdminNotification::isResolved)
-                .count();
-
-        return AdminDashboardDTO.SupportStats.builder()
-                .open((int) open)
-                .resolved((int) resolved)
-                .build();
-    }
-
-    private List<AdminDashboardDTO.MarketTrendPoint> getMarketTrend() {
-        // Genera trend degli ultimi 7 giorni
+        // 📊 TREND MERCATO (mock se non hai storico ancora)
         List<AdminDashboardDTO.MarketTrendPoint> trend = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        
-        for (int i = 6; i >= 0; i--) {
-            LocalDateTime date = LocalDateTime.now().minusDays(i);
-            String dateStr = date.format(formatter);
-            
-            // Simula valore di mercato (potresti calcolarlo da dati reali)
-            double value = 90 + (Math.random() * 20); // 90-110 range
-            
-            trend.add(AdminDashboardDTO.MarketTrendPoint.builder()
-                    .date(dateStr)
-                    .value(Math.round(value * 10.0) / 10.0)
-                    .build());
+        for (int i = 30; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            trend.add(new AdminDashboardDTO.MarketTrendPoint(date.toString(), 90 + Math.random() * 10));
         }
-        
-        return trend;
+        dto.setMarketTrend(trend);
+
+        return dto;
     }
 }

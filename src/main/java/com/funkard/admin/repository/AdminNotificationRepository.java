@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -28,4 +29,17 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     
     @Query("SELECT n FROM AdminNotification n WHERE n.createdAt >= :since ORDER BY n.createdAt DESC")
     List<AdminNotification> findRecentNotifications(LocalDateTime since);
+    
+    // 📊 Dashboard statistics methods
+    long countByResolvedFalse();
+    
+    long countByResolvedTrue();
+    
+    long countBySeverity(String severity);
+    
+    long countByTypeAndResolvedFalse(String type);
+    
+    long countByTypeAndResolvedTrue(String type);
+    
+    long deleteByResolvedTrueAndCreatedAtBefore(LocalDate date);
 }

@@ -2,23 +2,33 @@ package com.funkard.admin.controller;
 
 import com.funkard.admin.dto.AdminDashboardDTO;
 import com.funkard.admin.service.AdminDashboardService;
-import org.springframework.http.ResponseEntity;
+import com.funkard.admin.repository.AdminNotificationRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.Map;
+
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin/dashboard")
 @CrossOrigin(origins = "*")
 public class AdminDashboardController {
 
     private final AdminDashboardService dashboardService;
+    private final AdminNotificationRepository notificationRepository;
 
-    public AdminDashboardController(AdminDashboardService dashboardService) {
+    public AdminDashboardController(AdminDashboardService dashboardService, AdminNotificationRepository notificationRepository) {
         this.dashboardService = dashboardService;
+        this.notificationRepository = notificationRepository;
     }
 
-    @GetMapping("/dashboard")
-    public ResponseEntity<AdminDashboardDTO> getDashboard() {
-        AdminDashboardDTO dashboard = dashboardService.getDashboardStats();
-        return ResponseEntity.ok(dashboard);
+    @GetMapping
+    public AdminDashboardDTO getDashboard() {
+        return dashboardService.getDashboard();
+    }
+
+    @DeleteMapping("/cleanup")
+    public Map<String, Object> cleanupOldNotifications() {
+        long deleted = notificationRepository.deleteByResolvedTrueAndCreatedAtBefore(LocalDate.now().minusDays(30));
+        return Map.of("deleted", deleted);
     }
 }

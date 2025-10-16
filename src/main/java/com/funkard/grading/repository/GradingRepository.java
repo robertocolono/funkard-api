@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface GradingRepository extends JpaRepository<GradingRequest, Long> {
     Optional<GradingRequest> findByCardId(Long cardId);
+    
+    long countByStatus(String status);
 }
