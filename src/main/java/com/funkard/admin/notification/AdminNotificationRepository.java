@@ -1,6 +1,7 @@
 package com.funkard.admin.notification;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +28,13 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     
     long countByResolvedFalse();
     
+    long countByResolvedTrue();
+    
     long countByType(String type);
     
     long countByTypeAndResolvedFalse(String type);
+
+    @Modifying
+    @Query("DELETE FROM AdminNotification n WHERE n.resolved = true AND n.resolvedAt < :cutoff")
+    int deleteAllResolvedBefore(LocalDateTime cutoff);
 }
