@@ -62,30 +62,18 @@ public class SecurityConfig {
                     "/api/collection/**",
                     "/api/gradelens/**",
                     "/api/collection/**",
+                    "/api/admin/**",
                     "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
 
-            // 🔐 Aggiunge filtro JWT prima dell’autenticazione base
+            // 🔐 Aggiunge filtro JWT prima dell'autenticazione base
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
             // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable)
-
-            // 🌐 CORS esplicito per Vercel
-            .cors(cors -> cors.configurationSource(request -> {
-                var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                corsConfig.setAllowedOrigins(java.util.List.of(
-                    "https://funkardnew.vercel.app",
-                    "https://funkard.vercel.app"
-                ));
-                corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                corsConfig.setAllowedHeaders(java.util.List.of("*"));
-                corsConfig.setAllowCredentials(true);
-                return corsConfig;
-            }));
+            .httpBasic(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
@@ -94,11 +82,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
+            "https://funkard-admin.vercel.app",
+            "https://www.funkard.com",
+            "https://funkard.com",
             "https://funkard.vercel.app",
-            "https://funkardnew.vercel.app"
+            "https://funkardnew.vercel.app",
+            "http://localhost:3000"
         ));
         configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control", "X-Admin-Token"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
