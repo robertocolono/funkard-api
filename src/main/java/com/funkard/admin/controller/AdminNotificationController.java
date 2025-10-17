@@ -73,8 +73,19 @@ public class AdminNotificationController {
     }
 
     @GetMapping("/notifications")
-    public ResponseEntity<List<AdminNotification>> getAllNotifications() {
-        List<AdminNotification> list = repo.findAllByOrderByCreatedAtAsc();
+    public ResponseEntity<List<AdminNotification>> getAllNotifications(
+            @RequestParam(value = "status", required = false) String status) {
+        
+        List<AdminNotification> list;
+        
+        if ("unread".equalsIgnoreCase(status)) {
+            list = repo.findByReadFalseOrderByCreatedAtDesc();
+        } else if ("read".equalsIgnoreCase(status)) {
+            list = repo.findByReadTrueOrderByCreatedAtDesc();
+        } else {
+            list = repo.findAllByOrderByCreatedAtDesc();
+        }
+        
         return ResponseEntity.ok(list);
     }
 

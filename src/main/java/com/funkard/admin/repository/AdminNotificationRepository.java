@@ -56,4 +56,10 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     
     // Tutte le notifiche in ordine cronologico ascendente
     List<AdminNotification> findAllByOrderByCreatedAtAsc();
+    
+    // Notifiche lette ordinate per data (desc)
+    List<AdminNotification> findByReadTrueOrderByCreatedAtDesc();
+    
+    // Notifiche non lette ordinate per data (desc)
+    List<AdminNotification> findByReadFalseOrderByCreatedAtDesc();
 }
