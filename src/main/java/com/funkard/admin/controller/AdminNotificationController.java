@@ -60,4 +60,20 @@ public class AdminNotificationController {
         long count = repo.countByReadFalse();
         return ResponseEntity.ok(Map.of("unreadCount", count));
     }
+
+    @GetMapping("/unreadLatest")
+    public ResponseEntity<Map<String, Object>> getUnreadLatest() {
+        List<AdminNotification> latest = repo.findTop5ByReadFalseOrderByPriorityDescCreatedAtDesc();
+        long count = repo.countByReadFalse();
+        return ResponseEntity.ok(Map.of(
+            "unreadCount", count,
+            "notifications", latest
+        ));
+    }
+
+    @GetMapping("/notifications")
+    public ResponseEntity<List<AdminNotification>> getAllNotifications() {
+        List<AdminNotification> list = repo.findAllByOrderByCreatedAtAsc();
+        return ResponseEntity.ok(list);
+    }
 }

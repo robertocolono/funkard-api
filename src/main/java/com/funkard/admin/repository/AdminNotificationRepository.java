@@ -50,4 +50,10 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     
     // Notifiche archiviate (lette) negli ultimi 30 giorni
     List<AdminNotification> findByReadTrueAndCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime date);
+    
+    // Top 5 notifiche non lette ordinate per priorità e data
+    List<AdminNotification> findTop5ByReadFalseOrderByPriorityDescCreatedAtDesc();
+    
+    // Tutte le notifiche in ordine cronologico ascendente
+    List<AdminNotification> findAllByOrderByCreatedAtAsc();
 }
