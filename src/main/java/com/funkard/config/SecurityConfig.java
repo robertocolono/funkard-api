@@ -75,6 +75,15 @@ public class SecurityConfig {
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
 
+        // 👇 Log delle chiamate provenienti dal pannello admin
+        http.addFilterBefore((request, response, chain) -> {
+            String origin = request.getHeader("Origin");
+            if (origin != null && origin.contains("funkard-admin.vercel.app")) {
+                System.out.println("✅ Request from Funkard Admin detected: " + request.getRequestURI());
+            }
+            chain.doFilter(request, response);
+        }, org.springframework.web.filter.CorsFilter.class);
+
         return http.build();
     }
 
