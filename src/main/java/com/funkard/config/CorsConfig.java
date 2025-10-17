@@ -15,23 +15,23 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // ✅ domini consentiti (pannello admin + sito principale)
+        // ✅ Domini consentiti
         config.setAllowedOrigins(List.of(
             "https://funkard-admin.vercel.app",
             "https://funkard.vercel.app",
             "http://localhost:3000"
         ));
 
-        // ✅ metodi consentiti
+        // ✅ Metodi consentiti
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-        // ✅ header consentiti
+        // ✅ Header consentiti
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
-        // ✅ abilita credenziali e risposte corrette
+        // ✅ Permetti credenziali e risposte corrette
         config.setAllowCredentials(true);
 
-        // ✅ applica a tutte le rotte
+        // ✅ Applica a tutto
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
