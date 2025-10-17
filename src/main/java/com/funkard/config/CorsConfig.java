@@ -17,7 +17,7 @@ public class CorsConfig {
 
         // ✅ Domini autorizzati
         config.setAllowedOrigins(List.of(
-            "https://funkard.vercel.app",        // Frontend principale Funkard
+            "https://funkardnew.vercel.app",     // Frontend principale Funkard
             "https://funkard-admin.vercel.app",  // Pannello admin separato
             "http://localhost:3000",             // Sviluppo frontend principale
             "http://localhost:3001"              // Sviluppo pannello admin
