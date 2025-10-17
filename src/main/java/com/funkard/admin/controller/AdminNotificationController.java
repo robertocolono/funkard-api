@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -52,5 +53,11 @@ public class AdminNotificationController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/unreadCount")
+    public ResponseEntity<Map<String, Long>> getUnreadCount() {
+        long count = repo.countByReadFalse();
+        return ResponseEntity.ok(Map.of("unreadCount", count));
     }
 }
