@@ -19,6 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
 @EnableWebSecurity
@@ -76,12 +77,13 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable);
 
         // 👇 Log delle chiamate provenienti dal pannello admin
-        http.addFilterBefore((request, response, chain) -> {
+        http.addFilterBefore((servletRequest, response, chain) -> {
+            HttpServletRequest request = (HttpServletRequest) servletRequest;
             String origin = request.getHeader("Origin");
             if (origin != null && origin.contains("funkard-admin.vercel.app")) {
                 System.out.println("✅ Request from Funkard Admin detected: " + request.getRequestURI());
             }
-            chain.doFilter(request, response);
+            chain.doFilter(servletRequest, response);
         }, org.springframework.web.filter.CorsFilter.class);
 
         return http.build();
