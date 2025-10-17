@@ -14,11 +14,13 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
 
-        // ✅ Domini consentiti
+        // 🌍 Domini autorizzati (admin + sito principale + test locale)
         config.setAllowedOrigins(List.of(
             "https://funkard-admin.vercel.app",
-            "https://funkard.vercel.app",
+            "https://www.funkard.com",
+            "https://funkard.com",
             "http://localhost:3000"
         ));
 
@@ -26,12 +28,12 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         // ✅ Header consentiti
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Admin-Token"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control"));
 
-        // ✅ Permetti credenziali e risposte corrette
-        config.setAllowCredentials(true);
+        // ✅ Header visibili al client
+        config.setExposedHeaders(List.of("Authorization"));
 
-        // ✅ Applica a tutto
+        // Applica CORS a tutte le rotte
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
