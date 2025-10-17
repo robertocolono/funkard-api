@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/notifications")
@@ -31,5 +33,27 @@ public class AdminNotificationArchiveController {
         List<AdminNotification> archived = notificationRepository
                 .findByReadTrueAndCreatedAtAfterOrderByCreatedAtDesc(cutoff);
         return ResponseEntity.ok(archived);
+    }
+
+    /**
+     * Elimina definitivamente una notifica archiviata.
+     * Solo le notifiche con read_status = true possono essere eliminate.
+     */
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> deleteArchivedNotification(@PathVariable UUID id) {
+        Optional<AdminNotification> notifOpt = notificationRepository.findById(id);
+
+        if (notifOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        AdminNotification notif = notifOpt.get();
+
+        if (!notif.isRead()) {
+            return ResponseEntity.badRequest().body("Puoi eliminare solo notifiche archiviate");
+        }
+
+        notificationRepository.deleteById(id);
+        return ResponseEntity.ok("Notifica archiviata eliminata definitivamente");
     }
 }
