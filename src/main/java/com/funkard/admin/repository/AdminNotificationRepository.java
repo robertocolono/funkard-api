@@ -47,4 +47,7 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     
     @Query("DELETE FROM AdminNotification n WHERE n.read = true AND n.createdAt < :cutoff")
     int deleteAllResolvedBefore(@Param("cutoff") LocalDateTime cutoff);
+    
+    // Notifiche archiviate (lette) negli ultimi 30 giorni
+    List<AdminNotification> findByReadTrueAndCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime date);
 }
