@@ -3,6 +3,7 @@ package com.funkard.admin.controller;
 import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.repository.AdminNotificationRepository;
 import com.funkard.admin.service.AdminNotificationService;
+import com.funkard.admin.service.AdminActionLogger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,10 +18,12 @@ public class AdminNotificationController {
 
     private final AdminNotificationRepository repo;
     private final AdminNotificationService service;
+    private final AdminActionLogger actionLogger;
 
-    public AdminNotificationController(AdminNotificationRepository repo, AdminNotificationService service) {
+    public AdminNotificationController(AdminNotificationRepository repo, AdminNotificationService service, AdminActionLogger actionLogger) {
         this.repo = repo;
         this.service = service;
+        this.actionLogger = actionLogger;
     }
 
     @GetMapping("/active")
@@ -34,8 +37,12 @@ public class AdminNotificationController {
     }
 
     @PatchMapping("/{id}/resolve")
-    public ResponseEntity<Void> resolve(@PathVariable UUID id) {
+    public ResponseEntity<Void> resolve(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
         service.resolve(id);
+        
+        // Log the action
+        actionLogger.logNotificationResolved(id.hashCode(), adminUser);
+        
         return ResponseEntity.noContent().build();
     }
 
@@ -101,6 +108,9 @@ public class AdminNotificationController {
         notif.setReadAt(LocalDateTime.now());
         notif.setReadBy(adminUser);
         repo.save(notif);
+
+        // Log the action
+        actionLogger.logNotificationRead(notif.getId().hashCode(), adminUser);
 
         return ResponseEntity.ok(Map.of(
             "status", "ok",
