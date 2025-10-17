@@ -3,7 +3,6 @@ package com.funkard.admin.controller;
 import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.service.AdminNotificationService;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -66,8 +65,4 @@ public class AdminNotificationStreamController {
         emitters.removeAll(deadEmitters);
     }
 
-    @GetMapping("/active")
-    public ResponseEntity<List<AdminNotification>> getActiveNotifications() {
-        return ResponseEntity.ok(notificationService.getActiveNotifications());
-    }
 }
