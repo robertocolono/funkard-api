@@ -26,7 +26,7 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         // ✅ Header consentiti
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Admin-Token"));
 
         // ✅ Permetti credenziali e risposte corrette
         config.setAllowCredentials(true);
