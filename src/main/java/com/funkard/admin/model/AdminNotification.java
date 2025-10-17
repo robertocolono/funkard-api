@@ -33,6 +33,9 @@ public class AdminNotification {
     @Column(name = "read_at")
     private LocalDateTime readAt;
     
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+    
     // Constructors
     public AdminNotification() {}
     
@@ -67,4 +70,7 @@ public class AdminNotification {
     
     public LocalDateTime getReadAt() { return readAt; }
     public void setReadAt(LocalDateTime readAt) { this.readAt = readAt; }
+    
+    public LocalDateTime getArchivedAt() { return archivedAt; }
+    public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
 }
