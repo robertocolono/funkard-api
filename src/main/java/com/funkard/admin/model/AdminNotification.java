@@ -33,6 +33,9 @@ public class AdminNotification {
     @Column(name = "read_at")
     private LocalDateTime readAt;
     
+    @Column(name = "read_by")
+    private String readBy; // Nome o ID dell'admin che ha letto la notifica
+    
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
     
@@ -70,6 +73,9 @@ public class AdminNotification {
     
     public LocalDateTime getReadAt() { return readAt; }
     public void setReadAt(LocalDateTime readAt) { this.readAt = readAt; }
+    
+    public String getReadBy() { return readBy; }
+    public void setReadBy(String readBy) { this.readBy = readBy; }
     
     public LocalDateTime getArchivedAt() { return archivedAt; }
     public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }

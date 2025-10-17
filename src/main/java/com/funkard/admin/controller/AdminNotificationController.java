@@ -6,6 +6,7 @@ import com.funkard.admin.service.AdminNotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -75,5 +76,25 @@ public class AdminNotificationController {
     public ResponseEntity<List<AdminNotification>> getAllNotifications() {
         List<AdminNotification> list = repo.findAllByOrderByCreatedAtAsc();
         return ResponseEntity.ok(list);
+    }
+
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<?> markAsRead(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
+        var optional = repo.findById(id);
+        if (optional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        AdminNotification notif = optional.get();
+        notif.setRead(true);
+        notif.setReadAt(LocalDateTime.now());
+        notif.setReadBy(adminUser);
+        repo.save(notif);
+
+        return ResponseEntity.ok(Map.of(
+            "status", "ok",
+            "readBy", adminUser,
+            "readAt", notif.getReadAt()
+        ));
     }
 }
