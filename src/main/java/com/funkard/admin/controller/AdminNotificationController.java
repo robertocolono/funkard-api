@@ -44,12 +44,13 @@ public class AdminNotificationController {
     }
 
     @PostMapping("/{id}/resolve")
-    public ResponseEntity<AdminNotification> resolve(@PathVariable UUID id,
-                                                     @RequestBody(required = false) NoteReq body,
-                                                     Principal principal) {
+    public ResponseEntity<String> resolve(@PathVariable UUID id,
+                                         @RequestBody(required = false) NoteReq body,
+                                         Principal principal) {
         String user = principal != null ? principal.getName() : "admin";
         String note = body != null ? body.note : null;
-        return ResponseEntity.ok(service.resolve(id, user, note));
+        service.resolve(id, user, note);
+        return ResponseEntity.ok("Notification resolved successfully");
     }
 
     @PostMapping("/{id}/archive")

@@ -49,14 +49,6 @@ public class AdminNotificationService {
         return n;
     }
 
-    @Transactional
-    public AdminNotification resolve(UUID id, String userName, String note) {
-        AdminNotification n = repo.findById(id).orElseThrow();
-        n.setResolvedAt(LocalDateTime.now());
-        n.setResolvedBy(userName);
-        pushHistory(n, userName, "resolve", note);
-        return repo.save(n);
-    }
 
     @Transactional
     public AdminNotification archive(UUID id, String userName, String note) {
@@ -156,5 +148,34 @@ public class AdminNotificationService {
 
     public void systemWarn(String title, String message, Map<String, Object> metadata) {
         createAdminNotification(title, message, "warn", "system");
+    }
+
+    // Metodo resolve con firma corretta per compatibilità
+    @Transactional
+    public void resolve(UUID id, String resolvedBy, String note) {
+        var notification = repo.findById(id).orElse(null);
+        if (notification != null) {
+            notification.setArchivedAt(LocalDateTime.now());
+            notification.setRead(true);
+            notification.setReadBy(resolvedBy);
+            notification.setResolvedAt(LocalDateTime.now());
+            notification.setResolvedBy(resolvedBy);
+            pushHistory(notification, resolvedBy, "resolve", note);
+            repo.save(notification);
+        }
+    }
+
+
+    // Metodo di supporto per creare notifiche
+    private void createNotification(String type, String title, String message, Map<String, ?> data) {
+        var notif = new AdminNotification();
+        notif.setType(type);
+        notif.setTitle(title);
+        notif.setMessage(message);
+        notif.setPriority("normal");
+        notif.setCreatedAt(LocalDateTime.now());
+        notif.setRead(false);
+        AdminNotification saved = repo.save(notif);
+        broadcast(saved);
     }
 }
