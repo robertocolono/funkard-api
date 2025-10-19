@@ -62,4 +62,8 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     
     // Notifiche non lette ordinate per data (desc)
     List<AdminNotification> findByReadFalseOrderByCreatedAtDesc();
+    
+    // Cleanup notifiche archiviate più vecchie di una data
+    @Query("DELETE FROM AdminNotification n WHERE n.archived = true AND n.archivedAt < :cutoff")
+    int deleteByArchivedTrueAndArchivedAtBefore(@Param("cutoff") LocalDateTime cutoff);
 }

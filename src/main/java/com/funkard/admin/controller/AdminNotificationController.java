@@ -98,24 +98,66 @@ public class AdminNotificationController {
 
     @PatchMapping("/{id}/read")
     public ResponseEntity<?> markAsRead(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
-        var optional = repo.findById(id);
-        if (optional.isEmpty()) {
+        try {
+            AdminNotification notif = service.markRead(id, adminUser);
+            
+            // Log the action
+            actionLogger.logNotificationRead(notif.getId().hashCode(), adminUser);
+
+            return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "readBy", adminUser,
+                "readAt", notif.getReadAt()
+            ));
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
+    }
 
-        AdminNotification notif = optional.get();
-        notif.setRead(true);
-        notif.setReadAt(LocalDateTime.now());
-        notif.setReadBy(adminUser);
-        repo.save(notif);
+    @PatchMapping("/{id}/resolve")
+    public ResponseEntity<?> resolveNotification(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
+        try {
+            AdminNotification notif = service.resolve(id, adminUser);
+            
+            // Log the action
+            actionLogger.logNotificationResolved(notif.getId().hashCode(), adminUser);
 
-        // Log the action
-        actionLogger.logNotificationRead(notif.getId().hashCode(), adminUser);
+            return ResponseEntity.ok(Map.of(
+                "status", "resolved",
+                "resolvedBy", adminUser,
+                "resolvedAt", notif.getResolvedAt()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
-        return ResponseEntity.ok(Map.of(
-            "status", "ok",
-            "readBy", adminUser,
-            "readAt", notif.getReadAt()
-        ));
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<?> archiveNotification(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
+        try {
+            AdminNotification notif = service.archive(id, adminUser);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "archived",
+                "archivedBy", adminUser,
+                "archivedAt", notif.getArchivedAt()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/cleanup")
+    public ResponseEntity<?> cleanupOldNotifications(@RequestParam(defaultValue = "30") int days) {
+        try {
+            int deleted = service.cleanupArchivedOlderThanDays(days);
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "deleted", deleted,
+                "days", days
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 }

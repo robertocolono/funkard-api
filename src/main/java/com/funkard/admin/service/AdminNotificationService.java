@@ -51,6 +51,51 @@ public class AdminNotificationService {
     }
 
     @Transactional
+    public AdminNotification markRead(UUID id, String userName) {
+        AdminNotification n = repo.findById(id).orElseThrow();
+        if (!n.isRead()) {
+            n.setRead(true);
+            n.setReadAt(LocalDateTime.now());
+            n.setReadBy(userName);
+            pushHistory(n, userName, "read", null);
+            repo.save(n);
+        }
+        return n;
+    }
+
+    @Transactional
+    public AdminNotification resolve(UUID id, String userName) {
+        AdminNotification n = repo.findById(id).orElseThrow();
+        if (n.getResolvedAt() == null) {
+            n.setResolvedAt(LocalDateTime.now());
+            n.setResolvedBy(userName);
+            pushHistory(n, userName, "resolved", null);
+            repo.save(n);
+        }
+        return n;
+    }
+
+    @Transactional
+    public AdminNotification archive(UUID id, String userName) {
+        AdminNotification n = repo.findById(id).orElseThrow();
+        if (!n.isArchived()) {
+            n.setArchived(true);
+            n.setArchivedAt(LocalDateTime.now());
+            pushHistory(n, userName, "archived", null);
+            repo.save(n);
+        }
+        return n;
+    }
+
+    private void pushHistory(AdminNotification n, String user, String action, String details) {
+        String history = n.getHistory() != null ? n.getHistory() : "";
+        String entry = String.format("[%s] %s: %s%s", 
+            LocalDateTime.now(), user, action, 
+            details != null ? " - " + details : "");
+        n.setHistory(history + (history.isEmpty() ? "" : "\n") + entry);
+    }
+
+    @Transactional
     public void resolve(UUID id) {
         var nOpt = repo.findById(id);
         if (nOpt.isEmpty()) return;
@@ -63,5 +108,11 @@ public class AdminNotificationService {
 
     public List<AdminNotification> getActiveNotifications() {
         return repo.findByReadFalseOrderByCreatedAtDesc();
+    }
+
+    @Transactional
+    public int cleanupArchivedOlderThanDays(int days) {
+        LocalDateTime limit = LocalDateTime.now().minusDays(days);
+        return repo.deleteByArchivedTrueAndArchivedAtBefore(limit);
     }
 }
