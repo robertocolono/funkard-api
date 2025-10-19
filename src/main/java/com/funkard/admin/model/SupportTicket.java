@@ -2,6 +2,8 @@ package com.funkard.admin.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -44,6 +46,9 @@ public class SupportTicket {
     
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
+    
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<SupportMessage> messages = new ArrayList<>();
     
     // Constructors
     public SupportTicket() {}
@@ -92,4 +97,7 @@ public class SupportTicket {
     
     public LocalDateTime getResolvedAt() { return resolvedAt; }
     public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
+    
+    public List<SupportMessage> getMessages() { return messages; }
+    public void setMessages(List<SupportMessage> messages) { this.messages = messages; }
 }
