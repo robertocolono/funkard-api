@@ -18,7 +18,7 @@ public class AdminNotification {
     @Column(name = "title")
     private String title;
     
-    @Column(name = "message")
+    @Column(name = "message", columnDefinition = "text")
     private String message;
     
     @Column(name = "priority")
@@ -36,47 +36,71 @@ public class AdminNotification {
     @Column(name = "read_by")
     private String readBy; // Nome o ID dell'admin che ha letto la notifica
     
+    @Column(name = "archived")
+    private boolean archived = false;
+
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
-    
-    // Constructors
+
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+
+    @Column(name = "resolved_by")
+    private String resolvedBy;
+
+    @Column(name = "history", columnDefinition = "text")
+    private String history;
+
+    // === Costruttori ===
     public AdminNotification() {}
-    
+
     public AdminNotification(String type, String title, String message, String priority) {
         this.type = type;
         this.title = title;
         this.message = message;
         this.priority = priority;
     }
-    
-    // Getters and Setters
+
+    // === Getters & Setters ===
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-    
+
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
-    
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    
+
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
-    
+
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
-    
+
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
-    
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    
+
     public LocalDateTime getReadAt() { return readAt; }
     public void setReadAt(LocalDateTime readAt) { this.readAt = readAt; }
-    
+
     public String getReadBy() { return readBy; }
     public void setReadBy(String readBy) { this.readBy = readBy; }
-    
+
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean archived) { this.archived = archived; }
+
     public LocalDateTime getArchivedAt() { return archivedAt; }
     public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
+
+    public LocalDateTime getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
+
+    public String getResolvedBy() { return resolvedBy; }
+    public void setResolvedBy(String resolvedBy) { this.resolvedBy = resolvedBy; }
+
+    public String getHistory() { return history; }
+    public void setHistory(String history) { this.history = history; }
 }

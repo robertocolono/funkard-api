@@ -1,5 +1,6 @@
 package com.funkard.admin.system;
 
+import com.funkard.admin.service.SystemCleanupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class SystemMaintenanceController {
 
+    private final SystemCleanupService cleanupService;
+    
     // Valori temporanei in memoria (niente DB per ora, leggerissimo)
     private static final AtomicReference<CleanupStatus> lastCleanupStatus = new AtomicReference<>();
 
@@ -21,6 +24,10 @@ public class SystemMaintenanceController {
     public ResponseEntity<String> updateCleanupStatus(@RequestBody CleanupStatus status) {
         status.setTimestamp(LocalDateTime.now());
         lastCleanupStatus.set(status);
+        
+        // Salva anche nel database per tracking persistente
+        cleanupService.saveCleanupResult(status.result(), status.deleted(), "In-memory status update");
+        
         log.info("🧾 Updated Cleanup Status: {}", status);
         return ResponseEntity.ok("✅ Cleanup status updated");
     }
