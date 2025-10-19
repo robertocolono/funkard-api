@@ -3,7 +3,7 @@ package com.funkard.admin.controller;
 import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.repository.AdminNotificationRepository;
 import com.funkard.admin.service.AdminNotificationService;
-import com.funkard.admin.service.AdminActionLogger;
+import com.funkard.admin.log.AdminActionLogger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
