@@ -31,5 +31,4 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     long countByPriority(String priority);
     long countByType(String type);
     List<AdminNotification> findByReadTrueAndCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime date);
-    long deleteAllResolvedBefore(LocalDateTime cutoff);
 }

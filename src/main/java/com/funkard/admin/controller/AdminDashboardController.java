@@ -28,7 +28,7 @@ public class AdminDashboardController {
 
     @DeleteMapping("/cleanup")
     public Map<String, Object> cleanupOldNotifications() {
-        long deleted = notificationRepository.deleteAllResolvedBefore(LocalDateTime.now().minusDays(30));
+        long deleted = notificationRepository.deleteByArchivedTrueAndArchivedAtBefore(LocalDateTime.now().minusDays(30));
         return Map.of("deleted", deleted);
     }
 }
