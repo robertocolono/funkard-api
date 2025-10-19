@@ -1,5 +1,6 @@
 package com.funkard.admin.log;
 
+import com.funkard.admin.system.SystemMaintenanceController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.List;
 public class AdminActionLogController {
 
     private final AdminActionLogRepository logRepository;
+    private final SystemMaintenanceController systemController;
 
     @GetMapping("/{type}/{id}")
     public ResponseEntity<List<AdminActionLog>> getHistory(
@@ -35,6 +37,10 @@ public class AdminActionLogController {
         } else {
             log.info("✅ Funkard Admin Logs Cleanup — no old entries to delete (checked up to {})", cutoff);
         }
+
+        // 📊 Aggiorna status del cleanup
+        String result = deleted > 0 ? "success" : "no_entries";
+        systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()));
 
         return ResponseEntity.ok("🧹 Deleted " + deleted + " old admin logs (older than 2 months)");
     }
