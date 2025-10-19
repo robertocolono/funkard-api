@@ -12,6 +12,7 @@ import java.util.*;
 public class SupportTicketService {
 
     private final SupportTicketRepository repo;
+    private final AdminNotificationService notifications;
 
     public SupportTicket create(String email, String subject, String message) {
         SupportTicket ticket = new SupportTicket();
@@ -23,7 +24,17 @@ public class SupportTicketService {
         ticket.setCategory("general");
         ticket.setCreatedAt(LocalDateTime.now());
         ticket.setUpdatedAt(LocalDateTime.now());
-        return repo.save(ticket);
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 🔔 Notifica admin: nuovo ticket
+        notifications.createAdminNotification(
+                "Nuovo ticket di supporto",
+                "Da: " + email + " — " + subject,
+                "high",
+                "support_ticket"
+        );
+
+        return savedTicket;
     }
 
     public List<SupportTicket> findAll() {

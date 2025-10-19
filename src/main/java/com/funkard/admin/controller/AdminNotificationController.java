@@ -4,6 +4,7 @@ import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.service.AdminNotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.Principal;
 import java.util.List;
@@ -64,6 +65,11 @@ public class AdminNotificationsController {
     public ResponseEntity<CleanupRes> cleanup(@RequestParam(defaultValue = "30") int days) {
         long deleted = service.cleanupArchivedOlderThanDays(days);
         return ResponseEntity.ok(new CleanupRes(deleted, days));
+    }
+
+    @GetMapping("/stream")
+    public SseEmitter streamNotifications() {
+        return service.subscribe();
     }
 
     public record NoteReq(String note) {}

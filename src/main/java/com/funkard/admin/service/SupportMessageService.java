@@ -14,6 +14,7 @@ public class SupportMessageService {
 
     private final SupportTicketRepository ticketRepo;
     private final SupportMessageRepository messageRepo;
+    private final AdminNotificationService notifications;
 
     public SupportMessage addMessage(UUID ticketId, String message, String sender) {
         SupportTicket ticket = ticketRepo.findById(ticketId)
@@ -22,7 +23,21 @@ public class SupportMessageService {
         msg.setTicket(ticket);
         msg.setMessage(message);
         msg.setSender(sender);
-        return messageRepo.save(msg);
+        SupportMessage savedMessage = messageRepo.save(msg);
+
+        boolean fromUser = !sender.equalsIgnoreCase("admin");
+
+        // 🔔 Notifica automatica
+        if (fromUser) {
+            notifications.createAdminNotification(
+                    "Nuovo messaggio utente",
+                    "Ticket: " + ticket.getSubject(),
+                    "normal",
+                    "support_message"
+            );
+        }
+
+        return savedMessage;
     }
 
     public List<SupportMessage> getMessages(UUID ticketId) {
