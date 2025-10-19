@@ -12,11 +12,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/notifications")
-public class AdminNotificationsController {
+public class AdminNotificationController {
 
     private final AdminNotificationService service;
 
-    public AdminNotificationsController(AdminNotificationService service) {
+    public AdminNotificationController(AdminNotificationService service) {
         this.service = service;
     }
 

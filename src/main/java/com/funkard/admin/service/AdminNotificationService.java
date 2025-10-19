@@ -135,4 +135,17 @@ public class AdminNotificationService {
 
         emitters.removeAll(dead);
     }
+
+    // Metodi aggiuntivi per compatibilità
+    public List<AdminNotification> getActiveNotifications() {
+        return listActiveChrono();
+    }
+
+    public void systemError(String title, String message, Map<String, Object> metadata) {
+        createAdminNotification(title, message, "error", "system");
+    }
+
+    public void gradingEvent(String title, String message, Map<String, Object> metadata) {
+        createAdminNotification(title, message, "normal", "grading");
+    }
 }

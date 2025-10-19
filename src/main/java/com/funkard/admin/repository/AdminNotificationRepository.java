@@ -25,4 +25,11 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     List<AdminNotification> filter(String type, String priority, String status);
 
     long deleteByArchivedTrueAndArchivedAtBefore(LocalDateTime olderThan);
+    
+    // Metodi aggiuntivi per compatibilità
+    long countByReadFalse();
+    long countByPriority(String priority);
+    long countByType(String type);
+    List<AdminNotification> findByReadTrueAndCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime date);
+    long deleteAllResolvedBefore(LocalDateTime cutoff);
 }
