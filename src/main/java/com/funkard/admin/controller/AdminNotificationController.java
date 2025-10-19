@@ -1,163 +1,71 @@
 package com.funkard.admin.controller;
 
 import com.funkard.admin.model.AdminNotification;
-import com.funkard.admin.repository.AdminNotificationRepository;
 import com.funkard.admin.service.AdminNotificationService;
-import com.funkard.admin.log.AdminActionLogger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/notifications")
-public class AdminNotificationController {
+public class AdminNotificationsController {
 
-    private final AdminNotificationRepository repo;
     private final AdminNotificationService service;
-    private final AdminActionLogger actionLogger;
 
-    public AdminNotificationController(AdminNotificationRepository repo, AdminNotificationService service, AdminActionLogger actionLogger) {
-        this.repo = repo;
+    public AdminNotificationsController(AdminNotificationService service) {
         this.service = service;
-        this.actionLogger = actionLogger;
     }
 
-    @GetMapping("/active")
-    public List<AdminNotification> getActive() {
-        return repo.findByReadFalseOrderByCreatedAtDesc();
-    }
-
-    @GetMapping("/archived")
-    public List<AdminNotification> getArchived() {
-        return repo.findAllByOrderByCreatedAtDesc();
-    }
-
-    @PatchMapping("/{id}/resolve")
-    public ResponseEntity<Void> resolve(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
-        service.resolve(id);
-        
-        // Log the action
-        actionLogger.logNotificationResolved(id.hashCode(), adminUser);
-        
-        return ResponseEntity.noContent().build();
-    }
-
-    // 🔍 Filtro per tipo, gravità e stato
-    @GetMapping("/filter")
-    public ResponseEntity<List<AdminNotification>> filter(
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) String severity,
-            @RequestParam(required = false) Boolean resolved,
-            @RequestParam(defaultValue = "50") int limit
-    ) {
-        List<AdminNotification> result = repo.filter(type, severity, resolved);
-
-        if (result.size() > limit) {
-            result = result.subList(0, limit);
+    @GetMapping
+    public List<AdminNotification> list(@RequestParam(required = false) String type,
+                                        @RequestParam(required = false) String priority,
+                                        @RequestParam(required = false) String status) {
+        if (type != null || priority != null || status != null) {
+            return service.filter(type, priority, status);
         }
-
-        return ResponseEntity.ok(result);
+        return service.listActiveChrono();
     }
 
-    @GetMapping("/unreadCount")
-    public ResponseEntity<Map<String, Long>> getUnreadCount() {
-        long count = repo.countByReadFalse();
-        return ResponseEntity.ok(Map.of("unreadCount", count));
+    @GetMapping("/{id}")
+    public ResponseEntity<AdminNotification> get(@PathVariable UUID id) {
+        return service.get(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/unreadLatest")
-    public ResponseEntity<Map<String, Object>> getUnreadLatest() {
-        List<AdminNotification> latest = repo.findTop5ByReadFalseOrderByPriorityDescCreatedAtDesc();
-        long count = repo.countByReadFalse();
-        return ResponseEntity.ok(Map.of(
-            "unreadCount", count,
-            "notifications", latest
-        ));
+    @PostMapping("/{id}/read")
+    public ResponseEntity<AdminNotification> markRead(@PathVariable UUID id, Principal principal) {
+        String user = principal != null ? principal.getName() : "admin";
+        return ResponseEntity.ok(service.markRead(id, user));
     }
 
-    @GetMapping("/notifications")
-    public ResponseEntity<List<AdminNotification>> getAllNotifications(
-            @RequestParam(value = "status", required = false) String status) {
-        
-        List<AdminNotification> list;
-        
-        if ("unread".equalsIgnoreCase(status)) {
-            list = repo.findByReadFalseOrderByCreatedAtDesc();
-        } else if ("read".equalsIgnoreCase(status)) {
-            list = repo.findByReadTrueOrderByCreatedAtDesc();
-        } else {
-            list = repo.findAllByOrderByCreatedAtDesc();
-        }
-        
-        return ResponseEntity.ok(list);
+    @PostMapping("/{id}/resolve")
+    public ResponseEntity<AdminNotification> resolve(@PathVariable UUID id,
+                                                     @RequestBody(required = false) NoteReq body,
+                                                     Principal principal) {
+        String user = principal != null ? principal.getName() : "admin";
+        String note = body != null ? body.note : null;
+        return ResponseEntity.ok(service.resolve(id, user, note));
     }
 
-    @PatchMapping("/{id}/read")
-    public ResponseEntity<?> markAsRead(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
-        try {
-            AdminNotification notif = service.markRead(id, adminUser);
-            
-            // Log the action
-            actionLogger.logNotificationRead(notif.getId().hashCode(), adminUser);
-
-            return ResponseEntity.ok(Map.of(
-                "status", "ok",
-                "readBy", adminUser,
-                "readAt", notif.getReadAt()
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @PatchMapping("/{id}/resolve")
-    public ResponseEntity<?> resolveNotification(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
-        try {
-            AdminNotification notif = service.resolve(id, adminUser);
-            
-            // Log the action
-            actionLogger.logNotificationResolved(notif.getId().hashCode(), adminUser);
-
-            return ResponseEntity.ok(Map.of(
-                "status", "resolved",
-                "resolvedBy", adminUser,
-                "resolvedAt", notif.getResolvedAt()
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @PatchMapping("/{id}/archive")
-    public ResponseEntity<?> archiveNotification(@PathVariable UUID id, @RequestHeader("X-Admin-User") String adminUser) {
-        try {
-            AdminNotification notif = service.archive(id, adminUser);
-            
-            return ResponseEntity.ok(Map.of(
-                "status", "archived",
-                "archivedBy", adminUser,
-                "archivedAt", notif.getArchivedAt()
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<AdminNotification> archive(@PathVariable UUID id,
+                                                     @RequestBody(required = false) NoteReq body,
+                                                     Principal principal) {
+        String user = principal != null ? principal.getName() : "admin";
+        String note = body != null ? body.note : null;
+        return ResponseEntity.ok(service.archive(id, user, note));
     }
 
     @DeleteMapping("/cleanup")
-    public ResponseEntity<?> cleanupOldNotifications(@RequestParam(defaultValue = "30") int days) {
-        try {
-            int deleted = service.cleanupArchivedOlderThanDays(days);
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "deleted", deleted,
-                "days", days
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<CleanupRes> cleanup(@RequestParam(defaultValue = "30") int days) {
+        long deleted = service.cleanupArchivedOlderThanDays(days);
+        return ResponseEntity.ok(new CleanupRes(deleted, days));
     }
+
+    public record NoteReq(String note) {}
+    public record CleanupRes(long deleted, int olderThanDays) {}
 }
