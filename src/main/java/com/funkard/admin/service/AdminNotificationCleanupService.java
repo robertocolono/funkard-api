@@ -28,9 +28,9 @@ public class AdminNotificationCleanupService {
             LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
             
             // 1. Pulisce notifiche risolte da più di 30 giorni
-            int deletedResolved = repository.deleteAllResolvedBefore(cutoff);
+            long deletedResolved = repository.deleteAllResolvedBefore(cutoff);
             
-            int totalDeleted = deletedResolved;
+            long totalDeleted = deletedResolved;
             
             if (totalDeleted > 0) {
                 System.out.println("🧹 [CLEANUP] Pulizia completata:");
@@ -52,11 +52,11 @@ public class AdminNotificationCleanupService {
         try {
             LocalDateTime cutoff = LocalDateTime.now().minusDays(daysOld);
             
-            int deletedResolved = repository.deleteAllResolvedBefore(cutoff);
+            long deletedResolved = repository.deleteAllResolvedBefore(cutoff);
             
             System.out.println("🧹 [MANUAL CLEANUP] Rimossi " + deletedResolved + " record più vecchi di " + daysOld + " giorni");
             
-            return deletedResolved;
+            return (int) deletedResolved;
             
         } catch (Exception e) {
             System.err.println("❌ [MANUAL CLEANUP] Errore: " + e.getMessage());

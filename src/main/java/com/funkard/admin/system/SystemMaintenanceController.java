@@ -22,13 +22,13 @@ public class SystemMaintenanceController {
 
     @PostMapping("/cleanup/status")
     public ResponseEntity<String> updateCleanupStatus(@RequestBody CleanupStatus status) {
-        status.setTimestamp(LocalDateTime.now());
-        lastCleanupStatus.set(status);
+        CleanupStatus updatedStatus = new CleanupStatus(status.result(), status.deleted(), LocalDateTime.now());
+        lastCleanupStatus.set(updatedStatus);
         
         // Salva anche nel database per tracking persistente
         cleanupService.saveCleanupResult(status.result(), status.deleted(), "In-memory status update");
         
-        log.info("🧾 Updated Cleanup Status: {}", status);
+        log.info("🧾 Updated Cleanup Status: {}", updatedStatus);
         return ResponseEntity.ok("✅ Cleanup status updated");
     }
 

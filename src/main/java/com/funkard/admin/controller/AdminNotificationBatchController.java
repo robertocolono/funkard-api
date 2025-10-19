@@ -25,7 +25,7 @@ public class AdminNotificationBatchController {
             int resolvedCount = 0;
             for (UUID id : notificationIds) {
                 try {
-                    notificationService.resolve(id);
+                    notificationService.resolve(id, "system", "Batch resolve");
                     resolvedCount++;
                 } catch (Exception e) {
                     // Log error but continue with other IDs
@@ -59,7 +59,7 @@ public class AdminNotificationBatchController {
             for (UUID id : notificationIds) {
                 try {
                     // Prima risolvi, poi elimina (se implementi delete)
-                    notificationService.resolve(id);
+                    notificationService.resolve(id, "system", "Batch delete");
                     deletedCount++;
                 } catch (Exception e) {
                     System.err.println("Failed to delete notification " + id + ": " + e.getMessage());

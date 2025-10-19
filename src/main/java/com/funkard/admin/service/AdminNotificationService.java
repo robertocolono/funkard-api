@@ -148,4 +148,13 @@ public class AdminNotificationService {
     public void gradingEvent(String title, String message, Map<String, Object> metadata) {
         createAdminNotification(title, message, "normal", "grading");
     }
+
+    // Metodi aggiuntivi per compatibilità con altri servizi
+    public void marketEvent(String title, String message, Map<String, Object> metadata) {
+        createAdminNotification(title, message, "normal", "market");
+    }
+
+    public void systemWarn(String title, String message, Map<String, Object> metadata) {
+        createAdminNotification(title, message, "warn", "system");
+    }
 }
