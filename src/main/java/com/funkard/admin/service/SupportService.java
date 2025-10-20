@@ -24,6 +24,11 @@ public class SupportService {
                 .toList();
     }
 
+    public TicketDTO getTicketById(UUID id) {
+        SupportTicket ticket = repo.findById(id).orElseThrow(() -> new RuntimeException("Ticket not found"));
+        return TicketDTO.fromEntity(ticket);
+    }
+
     public void replyToTicket(UUID id, String reply) {
         var t = repo.findById(id).orElseThrow(() -> new RuntimeException("Ticket not found"));
         try {

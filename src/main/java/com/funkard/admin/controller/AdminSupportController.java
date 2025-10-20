@@ -36,6 +36,14 @@ public class AdminSupportController {
         return ResponseEntity.ok(service.getAllTickets());
     }
 
+    @GetMapping("/tickets/{id}")
+    public ResponseEntity<TicketDTO> getTicketById(@PathVariable UUID id, @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(service.getTicketById(id));
+    }
+
     @GetMapping("/stats")
     public ResponseEntity<?> getSupportStats(@RequestHeader(value = "X-Admin-Token", required = false) String token) {
         if (token == null || !token.equals(adminToken)) {
