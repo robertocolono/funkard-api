@@ -3,6 +3,7 @@ package com.funkard.admin.service;
 import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportTicketRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -13,6 +14,7 @@ public class SupportTicketService {
 
     private final SupportTicketRepository repo;
     private final AdminNotificationService notifications;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public SupportTicket create(String email, String subject, String message) {
         SupportTicket ticket = new SupportTicket();
@@ -62,6 +64,22 @@ public class SupportTicketService {
         if ("resolved".equals(status) || "closed".equals(status)) {
             ticket.setResolvedAt(LocalDateTime.now());
         }
-        return repo.save(ticket);
+        
+        SupportTicket savedTicket = repo.save(ticket);
+        
+        // 🔔 Notifica WebSocket: aggiornamento ticket
+        try {
+            messagingTemplate.convertAndSend("/topic/support/" + id + "/status", Map.of(
+                "ticketId", id,
+                "status", status,
+                "updatedAt", LocalDateTime.now().toString(),
+                "message", "Ticket aggiornato: " + status
+            ));
+            System.out.println("✅ WebSocket: Status aggiornato per ticket " + id);
+        } catch (Exception e) {
+            System.err.println("❌ Errore WebSocket status update: " + e.getMessage());
+        }
+        
+        return savedTicket;
     }
 }

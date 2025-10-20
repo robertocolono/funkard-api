@@ -27,6 +27,13 @@ public class SupportMessageDTO {
         this.createdAt = msg.getCreatedAt();
     }
 
+    // Costruttore per WebSocket payload
+    public SupportMessageDTO(String sender, String content) {
+        this.sender = sender;
+        this.content = content;
+        this.createdAt = OffsetDateTime.now();
+    }
+
     // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
