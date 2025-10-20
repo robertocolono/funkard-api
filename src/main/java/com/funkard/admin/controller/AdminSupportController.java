@@ -37,11 +37,23 @@ public class AdminSupportController {
     }
 
     @GetMapping("/tickets/{id}")
-    public ResponseEntity<TicketDTO> getTicketById(@PathVariable UUID id, @RequestHeader("X-Admin-Token") String token) {
+    public ResponseEntity<?> getTicketById(@PathVariable UUID id, @RequestHeader("X-Admin-Token") String token) {
         if (!token.equals(adminToken)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        return ResponseEntity.ok(service.getTicketById(id));
+        
+        try {
+            // Recupera ticket con messaggi e dettagli
+            TicketDTO ticket = service.getTicketById(id);
+            if (ticket == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ticket non trovato");
+            }
+            return ResponseEntity.ok(ticket);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il caricamento del ticket: " + e.getMessage());
+        }
     }
 
     @GetMapping("/stats")
