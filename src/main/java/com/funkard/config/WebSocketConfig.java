@@ -13,14 +13,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(
-                    "https://funkard-admin.vercel.app",
-                    "https://funkard.vercel.app", 
-                    "https://funkardnew.vercel.app",
-                    "http://localhost:3000",
-                    "http://localhost:3001"
-                )
-                .withSockJS(); // fallback per browser vecchi
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
     }
 
     @Override
