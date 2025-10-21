@@ -128,4 +128,38 @@ public class AdminSupportController {
                     .body("Errore durante la riapertura del ticket: " + e.getMessage());
         }
     }
+
+    // 👨‍💻 Marca messaggi come letti
+    @PostMapping("/{id}/mark-read")
+    public ResponseEntity<?> markMessagesAsRead(
+            @PathVariable UUID id,
+            @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            supportTicketService.markMessagesAsRead(id);
+            return ResponseEntity.ok().body("Messaggi marcati come letti");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il marking dei messaggi: " + e.getMessage());
+        }
+    }
+
+    // 📊 Conta ticket con nuovi messaggi
+    @GetMapping("/new-messages-count")
+    public ResponseEntity<?> getNewMessagesCount(@RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            long count = supportTicketService.countTicketsWithNewMessages();
+            return ResponseEntity.ok().body(Map.of("count", count));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il conteggio: " + e.getMessage());
+        }
+    }
 }

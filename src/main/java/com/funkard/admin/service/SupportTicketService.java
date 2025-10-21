@@ -9,6 +9,7 @@ import com.funkard.admin.repository.SupportTicketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -21,6 +22,7 @@ public class SupportTicketService {
     private final SupportMessageRepository messageRepository;
     private final AdminNotificationService notifications;
     private final SimpMessagingTemplate messagingTemplate;
+    private final SupportMessageService messageService;
 
     public SupportTicket create(String email, String subject, String message) {
         SupportTicket ticket = new SupportTicket();
@@ -146,22 +148,15 @@ public class SupportTicketService {
     }
 
     // 💬 Aggiungi risposta admin al ticket
+    @Transactional
     public SupportMessage addAdminReply(UUID ticketId, String sender, String content) {
-        SupportTicket ticket = repo.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
-
-        SupportMessage msg = new SupportMessage();
-        msg.setTicket(ticket);
-        msg.setSender(sender);
-        msg.setMessage(content);
-        msg.setCreatedAt(OffsetDateTime.now());
-
-        SupportMessage savedMessage = messageRepository.save(msg);
+        // Utilizza SupportMessageService per gestire automaticamente hasNewMessages
+        SupportMessage savedMessage = messageService.addMessage(ticketId, content, sender);
 
         // 🔔 Notifica anche il messaggio in real-time
         try {
-            messagingTemplate.convertAndSend("/topic/support/" + ticket.getId(), new SupportMessageDTO(savedMessage));
-            System.out.println("✅ WebSocket: Messaggio admin inviato per ticket " + ticket.getId());
+            messagingTemplate.convertAndSend("/topic/support/" + ticketId, new SupportMessageDTO(savedMessage));
+            System.out.println("✅ WebSocket: Messaggio admin inviato per ticket " + ticketId);
         } catch (Exception e) {
             System.err.println("❌ Errore WebSocket messaggio admin: " + e.getMessage());
         }
@@ -204,5 +199,16 @@ public class SupportTicketService {
         broadcastTicketUpdate(savedTicket, "REOPENED", false);
 
         return savedTicket;
+    }
+
+    // 👨‍💻 Marca i messaggi come letti dall'admin
+    @Transactional
+    public void markMessagesAsRead(UUID ticketId) {
+        messageService.markAsReadByAdmin(ticketId);
+    }
+
+    // 📊 Conta ticket con nuovi messaggi
+    public long countTicketsWithNewMessages() {
+        return messageService.countTicketsWithNewMessages();
     }
 }

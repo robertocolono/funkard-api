@@ -11,4 +11,7 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, UU
     long countByStatus(String status);
     long countByStatusAndCreatedAtBetween(String status, LocalDateTime start, LocalDateTime end);
     long countByStatusAndUpdatedAtBetween(String status, LocalDateTime start, LocalDateTime end);
+    
+    // Metodi per gestione nuovi messaggi
+    long countByHasNewMessagesTrue();
 }

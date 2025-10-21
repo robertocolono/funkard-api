@@ -47,6 +47,9 @@ public class SupportTicket {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
     
+    @Column(name = "has_new_messages")
+    private boolean hasNewMessages = false;
+    
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<SupportMessage> messages = new ArrayList<>();
     
@@ -97,6 +100,9 @@ public class SupportTicket {
     
     public LocalDateTime getResolvedAt() { return resolvedAt; }
     public void setResolvedAt(LocalDateTime resolvedAt) { this.resolvedAt = resolvedAt; }
+    
+    public boolean isHasNewMessages() { return hasNewMessages; }
+    public void setHasNewMessages(boolean hasNewMessages) { this.hasNewMessages = hasNewMessages; }
     
     public List<SupportMessage> getMessages() { return messages; }
     public void setMessages(List<SupportMessage> messages) { this.messages = messages; }
