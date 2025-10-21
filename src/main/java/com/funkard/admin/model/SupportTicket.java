@@ -53,6 +53,11 @@ public class SupportTicket {
     @Column(name = "assigned_to")
     private String assignedTo; // email o id del support
     
+    // Relazione con User per assegnazione
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to_user_id")
+    private com.funkard.model.User assignedToUser;
+    
     @Column(name = "locked")
     private boolean locked = false; // true se preso in carico
     
@@ -112,6 +117,9 @@ public class SupportTicket {
     
     public String getAssignedTo() { return assignedTo; }
     public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
+    
+    public com.funkard.model.User getAssignedToUser() { return assignedToUser; }
+    public void setAssignedToUser(com.funkard.model.User assignedToUser) { this.assignedToUser = assignedToUser; }
     
     public boolean isLocked() { return locked; }
     public void setLocked(boolean locked) { this.locked = locked; }

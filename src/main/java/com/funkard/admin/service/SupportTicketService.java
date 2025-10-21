@@ -305,4 +305,149 @@ public class SupportTicketService {
                 .filter(SupportTicket::isLocked)
                 .count();
     }
+
+    /**
+     * 🎯 Assegna ticket con controllo ruoli avanzato
+     */
+    @Transactional
+    public SupportTicket assignTicketWithRole(UUID ticketId, com.funkard.model.User user) {
+        SupportTicket ticket = repo.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        // Verifica permessi ruolo
+        if (!canUserAssignTicket(user, ticket)) {
+            throw new IllegalStateException("Utente non autorizzato ad assegnare questo ticket");
+        }
+
+        // Se già assegnato e non è lui → blocco
+        if (ticket.isLocked() && !isUserAssignedToTicket(ticket, user)) {
+            throw new IllegalStateException("Ticket già assegnato a un altro support");
+        }
+
+        // Assegna ticket
+        ticket.setAssignedTo(user.getEmail());
+        ticket.setAssignedToUser(user);
+        ticket.setLocked(true);
+        ticket.setStatus("in_progress");
+        ticket.setUpdatedAt(LocalDateTime.now());
+
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 🔔 Notifica admin
+        notifications.createAdminNotification(
+                "Ticket assegnato",
+                "Ticket: " + ticket.getSubject() + " assegnato a " + user.getEmail(),
+                "normal",
+                "ticket_assignment"
+        );
+
+        // 📡 SSE Real-time notification
+        Map<String, Object> eventData = Map.of(
+                "type", "TICKET_ASSIGNED",
+                "id", savedTicket.getId(),
+                "subject", savedTicket.getSubject(),
+                "assignedTo", user.getEmail(),
+                "assignedToUser", Map.of(
+                        "id", user.getId(),
+                        "email", user.getEmail(),
+                        "role", user.getRole()
+                ),
+                "status", savedTicket.getStatus(),
+                "locked", savedTicket.isLocked()
+        );
+        streamController.sendEvent("ticket-update", eventData);
+
+        return savedTicket;
+    }
+
+    /**
+     * 🔓 Rilascia ticket con controllo ruoli
+     */
+    @Transactional
+    public SupportTicket unassignTicketWithRole(UUID ticketId, com.funkard.model.User user) {
+        SupportTicket ticket = repo.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        // Verifica permessi per sbloccare
+        if (!canUserUnassignTicket(user, ticket)) {
+            throw new IllegalStateException("Non autorizzato a sbloccare questo ticket");
+        }
+
+        // Rilascia ticket
+        ticket.setAssignedTo(null);
+        ticket.setAssignedToUser(null);
+        ticket.setLocked(false);
+        ticket.setStatus("open");
+        ticket.setUpdatedAt(LocalDateTime.now());
+
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 📡 SSE Real-time notification
+        Map<String, Object> eventData = Map.of(
+                "type", "TICKET_UNASSIGNED",
+                "id", savedTicket.getId(),
+                "subject", savedTicket.getSubject(),
+                "status", savedTicket.getStatus(),
+                "locked", savedTicket.isLocked()
+        );
+        streamController.sendEvent("ticket-update", eventData);
+
+        return savedTicket;
+    }
+
+    /**
+     * 🔐 Verifica se l'utente può assegnare il ticket
+     */
+    private boolean canUserAssignTicket(com.funkard.model.User user, SupportTicket ticket) {
+        String userRole = user.getRole();
+        
+        // SUPER_ADMIN può assegnare qualsiasi ticket
+        if ("SUPER_ADMIN".equals(userRole)) {
+            return true;
+        }
+        
+        // ADMIN può assegnare ticket non chiusi
+        if ("ADMIN".equals(userRole)) {
+            return !"closed".equals(ticket.getStatus());
+        }
+        
+        // SUPPORT può assegnare solo ticket aperti
+        if ("SUPPORT".equals(userRole)) {
+            return "open".equals(ticket.getStatus()) || "reopened".equals(ticket.getStatus());
+        }
+        
+        return false;
+    }
+
+    /**
+     * 🔐 Verifica se l'utente può sbloccare il ticket
+     */
+    private boolean canUserUnassignTicket(com.funkard.model.User user, SupportTicket ticket) {
+        String userRole = user.getRole();
+        
+        // SUPER_ADMIN può sbloccare qualsiasi ticket
+        if ("SUPER_ADMIN".equals(userRole)) {
+            return true;
+        }
+        
+        // ADMIN può sbloccare qualsiasi ticket
+        if ("ADMIN".equals(userRole)) {
+            return true;
+        }
+        
+        // SUPPORT può sbloccare solo i propri ticket
+        if ("SUPPORT".equals(userRole)) {
+            return isUserAssignedToTicket(ticket, user);
+        }
+        
+        return false;
+    }
+
+    /**
+     * 🔍 Verifica se l'utente è assegnato al ticket
+     */
+    private boolean isUserAssignedToTicket(SupportTicket ticket, com.funkard.model.User user) {
+        return ticket.getAssignedToUser() != null && 
+               ticket.getAssignedToUser().getId().equals(user.getId());
+    }
 }
