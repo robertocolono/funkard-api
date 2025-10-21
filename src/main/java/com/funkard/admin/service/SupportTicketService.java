@@ -1,5 +1,6 @@
 package com.funkard.admin.service;
 
+import com.funkard.admin.dto.TicketDTO;
 import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportTicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -81,5 +82,33 @@ public class SupportTicketService {
         }
         
         return savedTicket;
+    }
+
+    // 🔔 Metodo per broadcast completo del ticket
+    public void broadcastTicketUpdate(SupportTicket ticket) {
+        try {
+            TicketDTO dto = TicketDTO.fromEntity(ticket);
+            messagingTemplate.convertAndSend("/topic/support/" + ticket.getId(), dto);
+            System.out.println("✅ WebSocket: Ticket aggiornato broadcast per " + ticket.getId());
+        } catch (Exception e) {
+            System.err.println("❌ Errore WebSocket broadcast: " + e.getMessage());
+        }
+    }
+
+    // 🔔 Metodo per aggiornare status con broadcast
+    public void updateTicketStatus(UUID id, String status) {
+        SupportTicket ticket = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        ticket.setStatus(status);
+        ticket.setUpdatedAt(LocalDateTime.now());
+        if ("resolved".equals(status) || "closed".equals(status)) {
+            ticket.setResolvedAt(LocalDateTime.now());
+        }
+        
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 🔔 Notifica real-time a tutti i client collegati
+        broadcastTicketUpdate(savedTicket);
     }
 }

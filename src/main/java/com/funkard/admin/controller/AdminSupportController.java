@@ -4,6 +4,7 @@ import com.funkard.admin.dto.SupportStatsDTO;
 import com.funkard.admin.dto.TicketDTO;
 import com.funkard.admin.service.AdminSupportService;
 import com.funkard.admin.service.SupportService;
+import com.funkard.admin.service.SupportTicketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +20,15 @@ public class AdminSupportController {
 
     private final SupportService service;
     private final AdminSupportService adminSupportService;
+    private final SupportTicketService ticketService;
     
     @Value("${admin.token}")
     private String adminToken;
 
-    public AdminSupportController(SupportService service, AdminSupportService adminSupportService) {
+    public AdminSupportController(SupportService service, AdminSupportService adminSupportService, SupportTicketService ticketService) {
         this.service = service;
         this.adminSupportService = adminSupportService;
+        this.ticketService = ticketService;
     }
 
     @GetMapping("/tickets")
@@ -75,6 +78,11 @@ public class AdminSupportController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         service.replyToTicket(id, body.get("reply"));
+        
+        // 🔔 Notifica real-time: ticket aggiornato
+        var ticket = ticketService.findById(id);
+        ticketService.broadcastTicketUpdate(ticket);
+        
         return ResponseEntity.ok().build();
     }
 
@@ -85,7 +93,10 @@ public class AdminSupportController {
         if (!token.equals(adminToken)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        service.closeTicket(id);
+        
+        // 🔔 Usa il nuovo metodo con broadcast automatico
+        ticketService.updateTicketStatus(id, "closed");
+        
         return ResponseEntity.ok().build();
     }
 }
