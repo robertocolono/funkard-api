@@ -1,12 +1,16 @@
 package com.funkard.admin.service;
 
+import com.funkard.admin.dto.SupportMessageDTO;
 import com.funkard.admin.dto.TicketDTO;
+import com.funkard.admin.model.SupportMessage;
 import com.funkard.admin.model.SupportTicket;
+import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Service
@@ -14,6 +18,7 @@ import java.util.*;
 public class SupportTicketService {
 
     private final SupportTicketRepository repo;
+    private final SupportMessageRepository messageRepository;
     private final AdminNotificationService notifications;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -96,7 +101,7 @@ public class SupportTicketService {
     }
 
     // 🔔 Metodo per aggiornare status con broadcast
-    public void updateTicketStatus(UUID id, String status) {
+    public SupportTicket updateTicketStatus(UUID id, String status) {
         SupportTicket ticket = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
 
@@ -110,5 +115,31 @@ public class SupportTicketService {
 
         // 🔔 Notifica real-time a tutti i client collegati
         broadcastTicketUpdate(savedTicket);
+        
+        return savedTicket;
+    }
+
+    // 💬 Aggiungi risposta admin al ticket
+    public SupportMessage addAdminReply(UUID ticketId, String sender, String content) {
+        SupportTicket ticket = repo.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        SupportMessage msg = new SupportMessage();
+        msg.setTicket(ticket);
+        msg.setSender(sender);
+        msg.setMessage(content);
+        msg.setCreatedAt(OffsetDateTime.now());
+
+        SupportMessage savedMessage = messageRepository.save(msg);
+
+        // 🔔 Notifica anche il messaggio in real-time
+        try {
+            messagingTemplate.convertAndSend("/topic/support/" + ticket.getId(), new SupportMessageDTO(savedMessage));
+            System.out.println("✅ WebSocket: Messaggio admin inviato per ticket " + ticket.getId());
+        } catch (Exception e) {
+            System.err.println("❌ Errore WebSocket messaggio admin: " + e.getMessage());
+        }
+
+        return savedMessage;
     }
 }
