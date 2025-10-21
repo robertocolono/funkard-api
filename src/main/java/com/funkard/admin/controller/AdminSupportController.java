@@ -162,4 +162,81 @@ public class AdminSupportController {
                     .body("Errore durante il conteggio: " + e.getMessage());
         }
     }
+
+    // 👨‍💻 Assegna ticket a un support
+    @PostMapping("/{id}/assign")
+    public ResponseEntity<?> assignTicket(
+            @PathVariable UUID id,
+            @RequestParam String supportEmail,
+            @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            SupportTicket ticket = supportTicketService.assignTicket(id, supportEmail);
+            return ResponseEntity.ok(ticket);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Errore: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante l'assegnazione: " + e.getMessage());
+        }
+    }
+
+    // 🔓 Rilascia ticket (unlock)
+    @PostMapping("/{id}/release")
+    public ResponseEntity<?> releaseTicket(
+            @PathVariable UUID id,
+            @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            SupportTicket ticket = supportTicketService.releaseTicket(id);
+            return ResponseEntity.ok(ticket);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Errore: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il rilascio: " + e.getMessage());
+        }
+    }
+
+    // 📋 Lista ticket assegnati a un support
+    @GetMapping("/assigned/{supportEmail}")
+    public ResponseEntity<?> getAssignedTickets(
+            @PathVariable String supportEmail,
+            @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            List<SupportTicket> tickets = supportTicketService.getTicketsAssignedTo(supportEmail);
+            return ResponseEntity.ok(tickets);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il recupero: " + e.getMessage());
+        }
+    }
+
+    // 📊 Conta ticket assegnati
+    @GetMapping("/assigned-count")
+    public ResponseEntity<?> getAssignedCount(@RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            long count = supportTicketService.countAssignedTickets();
+            return ResponseEntity.ok().body(Map.of("count", count));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il conteggio: " + e.getMessage());
+        }
+    }
 }

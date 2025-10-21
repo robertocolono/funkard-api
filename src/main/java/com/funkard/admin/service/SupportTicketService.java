@@ -211,4 +211,73 @@ public class SupportTicketService {
     public long countTicketsWithNewMessages() {
         return messageService.countTicketsWithNewMessages();
     }
+
+    // 👨‍💻 Assegna ticket a un support
+    @Transactional
+    public SupportTicket assignTicket(UUID ticketId, String supportEmail) {
+        SupportTicket ticket = repo.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        if (ticket.isLocked()) {
+            throw new IllegalStateException("Ticket già assegnato a: " + ticket.getAssignedTo());
+        }
+
+        ticket.setAssignedTo(supportEmail);
+        ticket.setLocked(true);
+        ticket.setStatus("in_progress");
+        ticket.setUpdatedAt(LocalDateTime.now());
+        
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 🔔 Notifica assegnazione
+        notifications.createAdminNotification(
+                "Ticket assegnato",
+                "Ticket: " + ticket.getSubject() + " assegnato a " + supportEmail,
+                "normal",
+                "ticket_assignment"
+        );
+
+        // 🔔 Broadcast real-time
+        broadcastTicketUpdate(savedTicket, "ASSIGNED", false);
+
+        return savedTicket;
+    }
+
+    // 🔓 Rilascia ticket (unlock)
+    @Transactional
+    public SupportTicket releaseTicket(UUID ticketId) {
+        SupportTicket ticket = repo.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        if (!ticket.isLocked()) {
+            throw new IllegalStateException("Ticket non è attualmente assegnato");
+        }
+
+        ticket.setAssignedTo(null);
+        ticket.setLocked(false);
+        ticket.setStatus("open");
+        ticket.setUpdatedAt(LocalDateTime.now());
+        
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 🔔 Broadcast real-time
+        broadcastTicketUpdate(savedTicket, "RELEASED", false);
+
+        return savedTicket;
+    }
+
+    // 📋 Lista ticket assegnati a un support
+    public List<SupportTicket> getTicketsAssignedTo(String supportEmail) {
+        return repo.findAll().stream()
+                .filter(t -> supportEmail.equals(t.getAssignedTo()))
+                .sorted(Comparator.comparing(SupportTicket::getCreatedAt).reversed())
+                .toList();
+    }
+
+    // 📊 Conta ticket assegnati
+    public long countAssignedTickets() {
+        return repo.findAll().stream()
+                .filter(SupportTicket::isLocked)
+                .count();
+    }
 }

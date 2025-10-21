@@ -50,6 +50,12 @@ public class SupportTicket {
     @Column(name = "has_new_messages")
     private boolean hasNewMessages = false;
     
+    @Column(name = "assigned_to")
+    private String assignedTo; // email o id del support
+    
+    @Column(name = "locked")
+    private boolean locked = false; // true se preso in carico
+    
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<SupportMessage> messages = new ArrayList<>();
     
@@ -103,6 +109,12 @@ public class SupportTicket {
     
     public boolean isHasNewMessages() { return hasNewMessages; }
     public void setHasNewMessages(boolean hasNewMessages) { this.hasNewMessages = hasNewMessages; }
+    
+    public String getAssignedTo() { return assignedTo; }
+    public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
+    
+    public boolean isLocked() { return locked; }
+    public void setLocked(boolean locked) { this.locked = locked; }
     
     public List<SupportMessage> getMessages() { return messages; }
     public void setMessages(List<SupportMessage> messages) { this.messages = messages; }
