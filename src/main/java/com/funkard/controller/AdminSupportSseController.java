@@ -185,6 +185,7 @@ public class AdminSupportSseController {
      * 🎫 Notifica nuovo ticket (admin e super_admin)
      */
     public static void notifyNewTicket(Object ticketData) {
+        // Assicurati che ticketData contenga email per filtraggio frontend
         sendToRole("admin", "new-ticket", ticketData);
         sendToRole("super_admin", "new-ticket", ticketData);
     }

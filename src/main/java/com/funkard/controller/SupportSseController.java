@@ -102,11 +102,12 @@ public class SupportSseController {
      */
     public static void notifyNewReply(String userEmail, String ticketId, String agentName, String messagePreview) {
         sendEventToUser(userEmail, "ticket-reply", Map.of(
+            "type", "ticket-reply",
             "ticketId", ticketId,
+            "email", userEmail,
             "agentName", agentName,
             "messagePreview", messagePreview,
-            "timestamp", System.currentTimeMillis(),
-            "type", "NEW_REPLY"
+            "timestamp", System.currentTimeMillis()
         ));
     }
 
@@ -115,10 +116,11 @@ public class SupportSseController {
      */
     public static void notifyTicketResolved(String userEmail, String ticketId, String status) {
         sendEventToUser(userEmail, "ticket-resolved", Map.of(
+            "type", "ticket-resolved",
             "ticketId", ticketId,
+            "email", userEmail,
             "status", status,
-            "timestamp", System.currentTimeMillis(),
-            "type", "TICKET_RESOLVED"
+            "timestamp", System.currentTimeMillis()
         ));
     }
 
@@ -127,9 +129,10 @@ public class SupportSseController {
      */
     public static void notifyTicketClosed(String userEmail, String ticketId) {
         sendEventToUser(userEmail, "ticket-closed", Map.of(
+            "type", "ticket-closed",
             "ticketId", ticketId,
-            "timestamp", System.currentTimeMillis(),
-            "type", "TICKET_CLOSED"
+            "email", userEmail,
+            "timestamp", System.currentTimeMillis()
         ));
     }
 
@@ -138,10 +141,11 @@ public class SupportSseController {
      */
     public static void notifyTicketCreated(String userEmail, String ticketId, String subject) {
         sendEventToUser(userEmail, "ticket-created", Map.of(
+            "type", "ticket-created",
             "ticketId", ticketId,
+            "email", userEmail,
             "subject", subject,
-            "timestamp", System.currentTimeMillis(),
-            "type", "TICKET_CREATED"
+            "timestamp", System.currentTimeMillis()
         ));
     }
 
@@ -150,11 +154,12 @@ public class SupportSseController {
      */
     public static void notifyStatusUpdate(String userEmail, String ticketId, String oldStatus, String newStatus) {
         sendEventToUser(userEmail, "status-update", Map.of(
+            "type", "status-update",
             "ticketId", ticketId,
+            "email", userEmail,
             "oldStatus", oldStatus,
             "newStatus", newStatus,
-            "timestamp", System.currentTimeMillis(),
-            "type", "STATUS_UPDATE"
+            "timestamp", System.currentTimeMillis()
         ));
     }
 

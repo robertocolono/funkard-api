@@ -50,13 +50,14 @@ public class SupportTicketService {
 
         // 📡 SSE Real-time notification basato sui ruoli
         Map<String, Object> eventData = Map.of(
-                "type", "NEW_TICKET",
-                "id", savedTicket.getId(),
-                "subject", savedTicket.getSubject(),
+                "type", "new-ticket",
+                "ticketId", savedTicket.getId().toString(),
                 "email", savedTicket.getUserEmail(),
+                "subject", savedTicket.getSubject(),
                 "status", savedTicket.getStatus(),
                 "createdAt", savedTicket.getCreatedAt(),
-                "priority", savedTicket.getPriority()
+                "priority", savedTicket.getPriority(),
+                "timestamp", System.currentTimeMillis()
         );
         
         // Notifica admin e super_admin (non support)
@@ -193,19 +194,22 @@ public class SupportTicketService {
             System.err.println("❌ Errore WebSocket messaggio admin: " + e.getMessage());
         }
 
-        // 📡 Notifica SSE basata sui ruoli per nuovo messaggio
-        Map<String, Object> messageData = Map.of(
-            "type", "NEW_MESSAGE",
-            "ticketId", ticketId,
-            "messageId", savedMessage.getId(),
-            "sender", sender,
-            "content", content.length() > 100 ? content.substring(0, 100) + "..." : content,
-            "timestamp", System.currentTimeMillis()
-        );
-        AdminSupportSseController.notifyNewMessage(messageData);
-
         // 📡 Notifica SSE all'utente finale
         SupportTicket ticket = repo.findById(ticketId).orElse(null);
+        
+        // 📡 Notifica SSE basata sui ruoli per nuovo messaggio
+        if (ticket != null) {
+            Map<String, Object> messageData = Map.of(
+                "type", "new-message",
+                "ticketId", ticketId.toString(),
+                "email", ticket.getUserEmail(),
+                "messageId", savedMessage.getId(),
+                "sender", sender,
+                "content", content.length() > 100 ? content.substring(0, 100) + "..." : content,
+                "timestamp", System.currentTimeMillis()
+            );
+            AdminSupportSseController.notifyNewMessage(messageData);
+        }
         if (ticket != null && ticket.getUserEmail() != null) {
             String messagePreview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
             SupportSseController.notifyNewReply(
@@ -228,8 +232,9 @@ public class SupportTicketService {
         
         // 📡 Notifica SSE basata sui ruoli per ticket risolto
         Map<String, Object> resolvedData = Map.of(
-            "type", "TICKET_RESOLVED",
-            "ticketId", ticket.getId(),
+            "type", "ticket-resolved",
+            "ticketId", ticket.getId().toString(),
+            "email", ticket.getUserEmail(),
             "status", "resolved",
             "timestamp", System.currentTimeMillis()
         );
@@ -256,8 +261,9 @@ public class SupportTicketService {
         
         // 📡 Notifica SSE basata sui ruoli per ticket chiuso
         Map<String, Object> closedData = Map.of(
-            "type", "TICKET_CLOSED",
-            "ticketId", ticket.getId(),
+            "type", "ticket-closed",
+            "ticketId", ticket.getId().toString(),
+            "email", ticket.getUserEmail(),
             "status", "closed",
             "timestamp", System.currentTimeMillis()
         );
@@ -334,8 +340,9 @@ public class SupportTicketService {
 
         // 📡 SSE Real-time notification basata sui ruoli per assegnazione
         Map<String, Object> eventData = Map.of(
-                "type", "TICKET_ASSIGNED",
-                "id", savedTicket.getId(),
+                "type", "ticket-assigned",
+                "ticketId", savedTicket.getId().toString(),
+                "email", savedTicket.getUserEmail(),
                 "subject", savedTicket.getSubject(),
                 "assignedTo", supportEmail,
                 "status", savedTicket.getStatus(),
