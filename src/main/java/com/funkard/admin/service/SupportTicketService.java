@@ -7,6 +7,7 @@ import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
 import com.funkard.controller.AdminSupportStreamController;
+import com.funkard.controller.SupportSseController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,13 @@ public class SupportTicketService {
                 "priority", savedTicket.getPriority()
         );
         streamController.sendEvent("ticket-update", eventData);
+
+        // 📡 Notifica SSE all'utente finale per conferma creazione
+        SupportSseController.notifyTicketCreated(
+            email,
+            savedTicket.getId().toString(),
+            subject
+        );
 
         return savedTicket;
     }
@@ -175,6 +183,18 @@ public class SupportTicketService {
             System.err.println("❌ Errore WebSocket messaggio admin: " + e.getMessage());
         }
 
+        // 📡 Notifica SSE all'utente finale
+        SupportTicket ticket = repo.findById(ticketId).orElse(null);
+        if (ticket != null && ticket.getUserEmail() != null) {
+            String messagePreview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
+            SupportSseController.notifyNewReply(
+                ticket.getUserEmail(),
+                ticketId.toString(),
+                sender,
+                messagePreview
+            );
+        }
+
         return savedMessage;
     }
 
@@ -184,6 +204,16 @@ public class SupportTicketService {
         
         // ✅ Notifica all'utente che è stato risolto
         broadcastTicketUpdate(ticket, "RESOLVED", true);
+        
+        // 📡 Notifica SSE all'utente finale
+        if (ticket.getUserEmail() != null) {
+            SupportSseController.notifyTicketResolved(
+                ticket.getUserEmail(),
+                ticket.getId().toString(),
+                "resolved"
+            );
+        }
+        
         return ticket;
     }
 
@@ -193,6 +223,15 @@ public class SupportTicketService {
         
         // 🔒 Solo admin: non inviamo broadcast all'utente
         broadcastTicketUpdate(ticket, "CLOSED", false);
+        
+        // 📡 Notifica SSE all'utente finale
+        if (ticket.getUserEmail() != null) {
+            SupportSseController.notifyTicketClosed(
+                ticket.getUserEmail(),
+                ticket.getId().toString()
+            );
+        }
+        
         return ticket;
     }
 
