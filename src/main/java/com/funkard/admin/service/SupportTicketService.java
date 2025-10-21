@@ -6,7 +6,6 @@ import com.funkard.admin.model.SupportMessage;
 import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
-import com.funkard.controller.AdminSupportStreamController;
 import com.funkard.controller.AdminSupportSseController;
 import com.funkard.controller.SupportSseController;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,6 @@ public class SupportTicketService {
     private final AdminNotificationService notifications;
     private final SimpMessagingTemplate messagingTemplate;
     private final SupportMessageService messageService;
-    private final AdminSupportStreamController streamController;
 
     public SupportTicket create(String email, String subject, String message) {
         SupportTicket ticket = new SupportTicket();
@@ -63,8 +61,6 @@ public class SupportTicketService {
         // Notifica admin e super_admin (non support)
         AdminSupportSseController.notifyNewTicket(eventData);
         
-        // Mantieni compatibilità con sistema esistente
-        streamController.sendEvent("ticket-update", eventData);
 
         // 📡 Notifica SSE all'utente finale per conferma creazione
         SupportSseController.notifyTicketCreated(
@@ -353,8 +349,6 @@ public class SupportTicketService {
         // Notifica al support specifico e super_admin
         AdminSupportSseController.notifyTicketAssigned(supportEmail, eventData);
         
-        // Mantieni compatibilità con sistema esistente
-        streamController.sendEvent("ticket-update", eventData);
 
         return savedTicket;
     }
@@ -446,7 +440,6 @@ public class SupportTicketService {
                 "status", savedTicket.getStatus(),
                 "locked", savedTicket.isLocked()
         );
-        streamController.sendEvent("ticket-update", eventData);
 
         return savedTicket;
     }
@@ -481,7 +474,6 @@ public class SupportTicketService {
                 "status", savedTicket.getStatus(),
                 "locked", savedTicket.isLocked()
         );
-        streamController.sendEvent("ticket-update", eventData);
 
         return savedTicket;
     }

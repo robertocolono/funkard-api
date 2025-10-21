@@ -4,7 +4,6 @@ import com.funkard.admin.model.SupportMessage;
 import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
-import com.funkard.controller.AdminSupportStreamController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +17,6 @@ public class SupportMessageService {
     private final SupportTicketRepository ticketRepo;
     private final SupportMessageRepository messageRepo;
     private final AdminNotificationService notifications;
-    private final AdminSupportStreamController streamController;
 
     @Transactional
     public SupportMessage addMessage(UUID ticketId, String message, String sender) {
@@ -60,7 +58,6 @@ public class SupportMessageService {
                     "hasNewMessages", true,
                     "createdAt", savedMessage.getCreatedAt()
             );
-            streamController.sendEvent("ticket-update", eventData);
         } else {
             // 👨‍💻 Admin risponde: flag = false (admin ha già visto)
             ticket.setHasNewMessages(false);
