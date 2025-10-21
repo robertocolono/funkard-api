@@ -100,6 +100,32 @@ public class SupportTicketService {
         }
     }
 
+    // 🧠 Broadcast "intelligente" con notifiche selettive
+    public void broadcastTicketUpdate(SupportTicket ticket, String eventType, boolean notifyUser) {
+        try {
+            Map<String, Object> update = new HashMap<>();
+            update.put("event", eventType);
+            update.put("ticketId", ticket.getId());
+            update.put("subject", ticket.getSubject());
+            update.put("status", ticket.getStatus());
+            update.put("updatedAt", LocalDateTime.now());
+
+            // 👨‍💻 Sempre invia update al pannello admin
+            messagingTemplate.convertAndSend("/topic/admin/support", update);
+            System.out.println("✅ WebSocket: Admin notificato per evento " + eventType);
+
+            // 👤 Notifica utente solo se richiesto
+            if (notifyUser) {
+                messagingTemplate.convertAndSend("/topic/support/" + ticket.getId(), update);
+                System.out.println("✅ WebSocket: Utente notificato per evento " + eventType);
+            } else {
+                System.out.println("🔒 WebSocket: Utente NON notificato per evento " + eventType);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Errore WebSocket broadcast intelligente: " + e.getMessage());
+        }
+    }
+
     // 🔔 Metodo per aggiornare status con broadcast
     public SupportTicket updateTicketStatus(UUID id, String status) {
         SupportTicket ticket = repo.findById(id)
@@ -141,5 +167,42 @@ public class SupportTicketService {
         }
 
         return savedMessage;
+    }
+
+    // 🎯 Risolve un ticket (notifica l'utente)
+    public SupportTicket resolveTicket(UUID id) {
+        SupportTicket ticket = updateTicketStatus(id, "resolved");
+        
+        // ✅ Notifica all'utente che è stato risolto
+        broadcastTicketUpdate(ticket, "RESOLVED", true);
+        return ticket;
+    }
+
+    // 🔒 Chiude un ticket (solo admin)
+    public SupportTicket closeTicket(UUID id) {
+        SupportTicket ticket = updateTicketStatus(id, "closed");
+        
+        // 🔒 Solo admin: non inviamo broadcast all'utente
+        broadcastTicketUpdate(ticket, "CLOSED", false);
+        return ticket;
+    }
+
+    // 🔄 Riapre un ticket risolto (solo admin)
+    public SupportTicket reopenTicket(UUID id) {
+        SupportTicket ticket = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket non trovato"));
+
+        if (!ticket.getStatus().equalsIgnoreCase("resolved")) {
+            throw new IllegalStateException("Solo i ticket risolti possono essere riaperti.");
+        }
+
+        ticket.setStatus("open");
+        ticket.setUpdatedAt(LocalDateTime.now());
+        SupportTicket savedTicket = repo.save(ticket);
+
+        // 🔄 Notifica admin che il ticket è stato riaperto
+        broadcastTicketUpdate(savedTicket, "REOPENED", false);
+
+        return savedTicket;
     }
 }

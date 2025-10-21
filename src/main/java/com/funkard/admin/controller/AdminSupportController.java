@@ -65,8 +65,8 @@ public class AdminSupportController {
         try {
             SupportMessage reply = supportTicketService.addAdminReply(id, payload.getSender(), payload.getContent());
 
-            // 🔔 Notifica real-time nuovo messaggio
-            supportTicketService.broadcastTicketUpdate(reply.getTicket());
+            // 🔔 Notifica real-time nuovo messaggio (utente + admin)
+            supportTicketService.broadcastTicketUpdate(reply.getTicket(), "NEW_MESSAGE", true);
 
             return ResponseEntity.ok(reply);
         } catch (Exception e) {
@@ -75,7 +75,25 @@ public class AdminSupportController {
         }
     }
 
-    // 🏁 Chiudi ticket
+    // 🎯 Risolvi ticket (notifica l'utente)
+    @PostMapping("/resolve/{id}")
+    public ResponseEntity<?> resolveTicket(
+            @PathVariable UUID id,
+            @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            SupportTicket ticket = supportTicketService.resolveTicket(id);
+            return ResponseEntity.ok(ticket);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante la risoluzione del ticket: " + e.getMessage());
+        }
+    }
+
+    // 🏁 Chiudi ticket (solo admin)
     @PostMapping("/close/{id}")
     public ResponseEntity<?> closeTicket(
             @PathVariable UUID id,
@@ -85,15 +103,29 @@ public class AdminSupportController {
         }
 
         try {
-            SupportTicket ticket = supportTicketService.updateTicketStatus(id, "closed");
-
-            // 🔔 Notifica real-time chiusura
-            supportTicketService.broadcastTicketUpdate(ticket);
-
+            SupportTicket ticket = supportTicketService.closeTicket(id);
             return ResponseEntity.ok(ticket);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Errore durante la chiusura del ticket: " + e.getMessage());
+        }
+    }
+
+    // 🔄 Riapri ticket (solo admin)
+    @PostMapping("/reopen/{id}")
+    public ResponseEntity<?> reopenTicket(
+            @PathVariable UUID id,
+            @RequestHeader("X-Admin-Token") String token) {
+        if (!token.equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            SupportTicket ticket = supportTicketService.reopenTicket(id);
+            return ResponseEntity.ok(ticket);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante la riapertura del ticket: " + e.getMessage());
         }
     }
 }
