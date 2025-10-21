@@ -60,7 +60,7 @@ public class SupportMessageService {
                     "hasNewMessages", true,
                     "createdAt", savedMessage.getCreatedAt()
             );
-            streamController.sendEvent(eventData);
+            streamController.sendEvent("ticket-update", eventData);
         } else {
             // 👨‍💻 Admin risponde: flag = false (admin ha già visto)
             ticket.setHasNewMessages(false);

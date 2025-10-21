@@ -56,7 +56,7 @@ public class SupportTicketService {
                 "createdAt", savedTicket.getCreatedAt(),
                 "priority", savedTicket.getPriority()
         );
-        streamController.sendEvent(eventData);
+        streamController.sendEvent("ticket-update", eventData);
 
         return savedTicket;
     }
@@ -263,7 +263,7 @@ public class SupportTicketService {
                 "status", savedTicket.getStatus(),
                 "locked", savedTicket.isLocked()
         );
-        streamController.sendEvent(eventData);
+        streamController.sendEvent("ticket-update", eventData);
 
         return savedTicket;
     }
