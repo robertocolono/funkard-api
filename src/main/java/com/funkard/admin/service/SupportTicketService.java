@@ -6,6 +6,7 @@ import com.funkard.admin.model.SupportMessage;
 import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
+import com.funkard.controller.AdminSupportStreamController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class SupportTicketService {
     private final AdminNotificationService notifications;
     private final SimpMessagingTemplate messagingTemplate;
     private final SupportMessageService messageService;
+    private final AdminSupportStreamController streamController;
 
     public SupportTicket create(String email, String subject, String message) {
         SupportTicket ticket = new SupportTicket();
@@ -43,6 +45,18 @@ public class SupportTicketService {
                 "high",
                 "support_ticket"
         );
+
+        // 📡 SSE Real-time notification
+        Map<String, Object> eventData = Map.of(
+                "type", "NEW_TICKET",
+                "id", savedTicket.getId(),
+                "subject", savedTicket.getSubject(),
+                "email", savedTicket.getUserEmail(),
+                "status", savedTicket.getStatus(),
+                "createdAt", savedTicket.getCreatedAt(),
+                "priority", savedTicket.getPriority()
+        );
+        streamController.sendEvent(eventData);
 
         return savedTicket;
     }
@@ -239,6 +253,17 @@ public class SupportTicketService {
 
         // 🔔 Broadcast real-time
         broadcastTicketUpdate(savedTicket, "ASSIGNED", false);
+
+        // 📡 SSE Real-time notification per assegnazione
+        Map<String, Object> eventData = Map.of(
+                "type", "TICKET_ASSIGNED",
+                "id", savedTicket.getId(),
+                "subject", savedTicket.getSubject(),
+                "assignedTo", supportEmail,
+                "status", savedTicket.getStatus(),
+                "locked", savedTicket.isLocked()
+        );
+        streamController.sendEvent(eventData);
 
         return savedTicket;
     }
