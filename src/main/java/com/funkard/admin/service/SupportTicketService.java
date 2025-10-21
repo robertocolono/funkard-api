@@ -7,6 +7,7 @@ import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
 import com.funkard.controller.AdminSupportStreamController;
+import com.funkard.controller.AdminSupportSseController;
 import com.funkard.controller.SupportSseController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -47,7 +48,7 @@ public class SupportTicketService {
                 "support_ticket"
         );
 
-        // 📡 SSE Real-time notification
+        // 📡 SSE Real-time notification basato sui ruoli
         Map<String, Object> eventData = Map.of(
                 "type", "NEW_TICKET",
                 "id", savedTicket.getId(),
@@ -57,6 +58,11 @@ public class SupportTicketService {
                 "createdAt", savedTicket.getCreatedAt(),
                 "priority", savedTicket.getPriority()
         );
+        
+        // Notifica admin e super_admin (non support)
+        AdminSupportSseController.notifyNewTicket(eventData);
+        
+        // Mantieni compatibilità con sistema esistente
         streamController.sendEvent("ticket-update", eventData);
 
         // 📡 Notifica SSE all'utente finale per conferma creazione
@@ -71,6 +77,10 @@ public class SupportTicketService {
 
     public List<SupportTicket> findAll() {
         return repo.findAll();
+    }
+
+    public long countAll() {
+        return repo.count();
     }
 
     public List<SupportTicket> findByEmail(String email) {
@@ -183,6 +193,17 @@ public class SupportTicketService {
             System.err.println("❌ Errore WebSocket messaggio admin: " + e.getMessage());
         }
 
+        // 📡 Notifica SSE basata sui ruoli per nuovo messaggio
+        Map<String, Object> messageData = Map.of(
+            "type", "NEW_MESSAGE",
+            "ticketId", ticketId,
+            "messageId", savedMessage.getId(),
+            "sender", sender,
+            "content", content.length() > 100 ? content.substring(0, 100) + "..." : content,
+            "timestamp", System.currentTimeMillis()
+        );
+        AdminSupportSseController.notifyNewMessage(messageData);
+
         // 📡 Notifica SSE all'utente finale
         SupportTicket ticket = repo.findById(ticketId).orElse(null);
         if (ticket != null && ticket.getUserEmail() != null) {
@@ -205,6 +226,15 @@ public class SupportTicketService {
         // ✅ Notifica all'utente che è stato risolto
         broadcastTicketUpdate(ticket, "RESOLVED", true);
         
+        // 📡 Notifica SSE basata sui ruoli per ticket risolto
+        Map<String, Object> resolvedData = Map.of(
+            "type", "TICKET_RESOLVED",
+            "ticketId", ticket.getId(),
+            "status", "resolved",
+            "timestamp", System.currentTimeMillis()
+        );
+        AdminSupportSseController.notifyTicketResolved(resolvedData);
+
         // 📡 Notifica SSE all'utente finale
         if (ticket.getUserEmail() != null) {
             SupportSseController.notifyTicketResolved(
@@ -224,6 +254,15 @@ public class SupportTicketService {
         // 🔒 Solo admin: non inviamo broadcast all'utente
         broadcastTicketUpdate(ticket, "CLOSED", false);
         
+        // 📡 Notifica SSE basata sui ruoli per ticket chiuso
+        Map<String, Object> closedData = Map.of(
+            "type", "TICKET_CLOSED",
+            "ticketId", ticket.getId(),
+            "status", "closed",
+            "timestamp", System.currentTimeMillis()
+        );
+        AdminSupportSseController.notifyTicketClosed(closedData);
+
         // 📡 Notifica SSE all'utente finale
         if (ticket.getUserEmail() != null) {
             SupportSseController.notifyTicketClosed(
@@ -293,15 +332,21 @@ public class SupportTicketService {
         // 🔔 Broadcast real-time
         broadcastTicketUpdate(savedTicket, "ASSIGNED", false);
 
-        // 📡 SSE Real-time notification per assegnazione
+        // 📡 SSE Real-time notification basata sui ruoli per assegnazione
         Map<String, Object> eventData = Map.of(
                 "type", "TICKET_ASSIGNED",
                 "id", savedTicket.getId(),
                 "subject", savedTicket.getSubject(),
                 "assignedTo", supportEmail,
                 "status", savedTicket.getStatus(),
-                "locked", savedTicket.isLocked()
+                "locked", savedTicket.isLocked(),
+                "timestamp", System.currentTimeMillis()
         );
+        
+        // Notifica al support specifico e super_admin
+        AdminSupportSseController.notifyTicketAssigned(supportEmail, eventData);
+        
+        // Mantieni compatibilità con sistema esistente
         streamController.sendEvent("ticket-update", eventData);
 
         return savedTicket;
