@@ -36,6 +36,7 @@ public class UserService {
         dto.setName(u.getName());
         dto.setAvatarUrl(u.getAvatarUrl());
         dto.setRole(u.getRole());
+        dto.setPreferredCurrency(u.getPreferredCurrency()); // 👈 nuovo campo
         return dto;
     }
 }

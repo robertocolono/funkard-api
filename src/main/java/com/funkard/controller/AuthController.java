@@ -3,6 +3,7 @@ package com.funkard.controller;
 import com.funkard.model.User;
 import com.funkard.repository.UserRepository;
 import com.funkard.security.JwtUtil;
+import com.funkard.payload.RegisterRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +29,7 @@ public class AuthController {
 
     // REGISTRAZIONE
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User request) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (request.getEmail() == null || request.getPassword() == null) {
             return ResponseEntity.badRequest().body("Campi obbligatori mancanti");
         }
@@ -37,12 +38,18 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email già registrata");
         }
 
-        // Cripta password e marca come verificato (semplificazione)
-        request.setPassword(passwordEncoder.encode(request.getPassword()));
-        request.setVerified(true);
-        userRepository.save(request);
+        // Crea nuovo utente con preferredCurrency
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setUsername(request.getUsername());
+        user.setPreferredCurrency(request.getPreferredCurrency() != null ? request.getPreferredCurrency() : "EUR");
+        user.setVerified(true);
+        user.setRole("USER");
+        
+        userRepository.save(user);
 
-        String token = jwtUtil.generateToken(request.getEmail());
+        String token = jwtUtil.generateToken(user.getEmail());
         Map<String, String> body = new HashMap<>();
         body.put("token", token);
         return ResponseEntity.ok(body);

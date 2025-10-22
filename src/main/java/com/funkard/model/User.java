@@ -40,6 +40,10 @@ public class User {
     private String role = "USER";
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // 🔹 Nuovo campo valuta preferita
+    @Column(nullable = false, length = 3)
+    private String preferredCurrency = "EUR";
+
     // Metodi di compatibilità per DTO/Service
     public String getName() { return this.nome; }
     public void setName(String name) { this.nome = name; }

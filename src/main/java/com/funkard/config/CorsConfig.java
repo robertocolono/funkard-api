@@ -26,8 +26,8 @@ public class CorsConfig {
 
         // 🔑 Metodi e header consentiti
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-User-Id", "X-Admin-Token"));
+        config.setExposedHeaders(List.of("Authorization", "X-User-Id"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

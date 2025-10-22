@@ -59,6 +59,7 @@ public class SecurityConfig {
                     "/api/gradelens/**",
                     "/api/collection/**",
                     "/api/admin/**",
+                    "/api/user/payments/**",
                     "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()
