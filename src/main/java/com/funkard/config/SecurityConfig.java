@@ -105,7 +105,7 @@ public class SecurityConfig {
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
 
-        // 👇 Log delle chiamate provenienti dal pannello admin
+        // 👇 Log delle chiamate provenienti dal pannello admin (dopo CORS)
         http.addFilterAfter((servletRequest, response, chain) -> {
             HttpServletRequest request = (HttpServletRequest) servletRequest;
             String origin = request.getHeader("Origin");
