@@ -60,6 +60,8 @@ public class SecurityConfig {
                     "/api/collection/**",
                     "/api/admin/**",
                     "/api/user/payments/**",
+                    "/api/user/me",
+                    "/api/user/address/**",
                     "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()
@@ -76,8 +78,8 @@ public class SecurityConfig {
         http.addFilterBefore((servletRequest, response, chain) -> {
             HttpServletRequest request = (HttpServletRequest) servletRequest;
             String origin = request.getHeader("Origin");
-            if (origin != null && origin.contains("funkard-admin.vercel.app")) {
-                System.out.println("✅ Request from Funkard Admin detected: " + request.getRequestURI());
+            if (origin != null && (origin.contains("funkard.com") || origin.contains("localhost"))) {
+                System.out.println("✅ Request from Funkard detected: " + request.getRequestURI());
             }
             chain.doFilter(servletRequest, response);
         }, org.springframework.web.filter.CorsFilter.class);

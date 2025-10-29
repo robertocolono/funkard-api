@@ -36,9 +36,9 @@ management:
     mail:
       enabled: false
 
-funkard:
-  frontend:
-    url: https://funkard.vercel.app
+# funkard:
+#   frontend:
+#     url: https://funkard.vercel.app  # Rimosso - non più utilizzato
 
 admin:
   email: ${ADMIN_EMAIL:}

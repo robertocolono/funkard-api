@@ -18,10 +18,10 @@ public class CorsConfig {
 
         // 🌍 Origini permesse
         config.setAllowedOrigins(List.of(
-            "https://funkard-admin.vercel.app",
             "https://www.funkard.com",
             "https://funkard.com",
-            "http://localhost:3000" // per test locali
+            "http://localhost:3000",
+            "http://localhost:3002"
         ));
 
         // 🔑 Metodi e header consentiti

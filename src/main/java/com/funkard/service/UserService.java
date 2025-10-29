@@ -3,31 +3,193 @@ package com.funkard.service;
 import com.funkard.model.User;
 import com.funkard.repository.UserRepository;
 import com.funkard.dto.UserDTO;
+import com.funkard.dto.UserProfileDTO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * 👤 Service per gestione utenti e profili
+ * 
+ * ✅ CRUD completo utenti
+ * ✅ Gestione profili utente
+ * ✅ Validazioni business
+ * ✅ Transazioni ottimizzate
+ */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class UserService {
+    
     private final UserRepository repo;
 
-    public UserService(UserRepository repo) {
-        this.repo = repo;
-    }
+    // ==================== CRUD UTENTI ====================
 
+    /**
+     * 📋 Ottieni tutti gli utenti
+     */
     public List<UserDTO> getAll() {
-        return repo.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+        log.info("Recupero lista utenti");
+        return repo.findAll().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * ➕ Crea nuovo utente
+     */
+    @Transactional
     public UserDTO create(User user) {
-        return toDTO(repo.save(user));
+        log.info("Creazione nuovo utente: {}", user.getEmail());
+        
+        // Validazioni business
+        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("Email obbligatoria");
+        }
+        
+        if (repo.findByEmail(user.getEmail()) != null) {
+            throw new IllegalArgumentException("Email già registrata");
+        }
+
+        // Imposta valori di default
+        if (user.getPreferredCurrency() == null) {
+            user.setPreferredCurrency("EUR");
+        }
+        if (user.getRole() == null) {
+            user.setRole("USER");
+        }
+
+        User saved = repo.save(user);
+        log.info("Utente creato con successo: {}", saved.getId());
+        return toDTO(saved);
     }
 
+    /**
+     * 🔍 Trova utente per ID
+     */
+    public User findById(Long id) {
+        return repo.findById(id).orElse(null);
+    }
+
+    /**
+     * 🔍 Trova utente per email
+     */
+    public User findByEmail(String email) {
+        return repo.findByEmail(email);
+    }
+
+    /**
+     * 🗑️ Elimina utente
+     */
+    @Transactional
     public void delete(Long id) {
+        log.info("Eliminazione utente: {}", id);
+        
+        if (!repo.existsById(id)) {
+            throw new IllegalArgumentException("Utente non trovato");
+        }
+        
         repo.deleteById(id);
+        log.info("Utente eliminato con successo: {}", id);
     }
 
+    // ==================== GESTIONE PROFILI ====================
+
+    /**
+     * 👤 Ottieni profilo utente
+     */
+    public UserProfileDTO getUserProfile(User user) {
+        log.info("Recupero profilo utente: {}", user.getId());
+        
+        UserProfileDTO dto = new UserProfileDTO();
+        dto.setId(user.getId());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setUsername(user.getUsername());
+        dto.setPreferredCurrency(user.getPreferredCurrency());
+        dto.setLanguage(user.getLanguage());
+        dto.setTheme(user.getTheme());
+        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setLastLoginAt(user.getLastLoginAt());
+        
+        return dto;
+    }
+
+    /**
+     * ✏️ Aggiorna profilo utente
+     */
+    @Transactional
+    public UserProfileDTO updateUserProfile(User user, UserProfileDTO dto) {
+        log.info("Aggiornamento profilo utente: {}", user.getId());
+        
+        // Validazioni
+        if (dto.getName() != null && dto.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Il nome non può essere vuoto");
+        }
+        
+        if (dto.getPreferredCurrency() != null && !isValidCurrency(dto.getPreferredCurrency())) {
+            throw new IllegalArgumentException("Valuta non supportata: " + dto.getPreferredCurrency());
+        }
+
+        // Aggiorna solo i campi forniti
+        if (dto.getName() != null) {
+            user.setName(dto.getName());
+        }
+        if (dto.getPreferredCurrency() != null) {
+            user.setPreferredCurrency(dto.getPreferredCurrency());
+        }
+        if (dto.getLanguage() != null) {
+            user.setLanguage(dto.getLanguage());
+        }
+        if (dto.getTheme() != null) {
+            user.setTheme(dto.getTheme());
+        }
+        if (dto.getAvatarUrl() != null) {
+            user.setAvatarUrl(dto.getAvatarUrl());
+        }
+
+        // Aggiorna timestamp
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        User saved = repo.save(user);
+        log.info("Profilo aggiornato con successo: {}", saved.getId());
+        
+        return getUserProfile(saved);
+    }
+
+    /**
+     * 🔄 Aggiorna ultimo accesso
+     */
+    @Transactional
+    public void updateLastLogin(Long userId) {
+        log.debug("Aggiornamento ultimo accesso per utente: {}", userId);
+        
+        repo.findById(userId).ifPresent(user -> {
+            user.setLastLoginAt(LocalDateTime.now());
+            repo.save(user);
+        });
+    }
+
+    // ==================== UTILITY METHODS ====================
+
+    /**
+     * ✅ Verifica se una valuta è supportata
+     */
+    private boolean isValidCurrency(String currency) {
+        return currency != null && 
+               (currency.equals("EUR") || currency.equals("USD") || currency.equals("GBP"));
+    }
+
+    /**
+     * 🔄 Converte User in UserDTO
+     */
     private UserDTO toDTO(User u) {
         UserDTO dto = new UserDTO();
         dto.setId(u.getId());
@@ -36,7 +198,21 @@ public class UserService {
         dto.setName(u.getName());
         dto.setAvatarUrl(u.getAvatarUrl());
         dto.setRole(u.getRole());
-        dto.setPreferredCurrency(u.getPreferredCurrency()); // 👈 nuovo campo
+        dto.setPreferredCurrency(u.getPreferredCurrency());
         return dto;
+    }
+
+    /**
+     * 📊 Statistiche utenti
+     */
+    public long getUserCount() {
+        return repo.count();
+    }
+
+    /**
+     * 🔍 Verifica se email esiste
+     */
+    public boolean emailExists(String email) {
+        return repo.findByEmail(email) != null;
     }
 }
