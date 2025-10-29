@@ -75,7 +75,7 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable);
 
         // 👇 Log delle chiamate provenienti dal pannello admin
-        http.addFilterBefore((servletRequest, response, chain) -> {
+        http.addFilterAfter((servletRequest, response, chain) -> {
             HttpServletRequest request = (HttpServletRequest) servletRequest;
             String origin = request.getHeader("Origin");
             if (origin != null && (origin.contains("funkard.com") || origin.contains("localhost"))) {
