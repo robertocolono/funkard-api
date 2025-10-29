@@ -14,6 +14,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
+import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
@@ -37,13 +42,39 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        
+        // 🌍 Origini permesse
+        config.setAllowedOrigins(List.of(
+            "https://www.funkard.com",
+            "https://funkard.com",
+            "http://localhost:3000",
+            "http://localhost:3002"
+        ));
+        
+        // 🔑 Metodi e header consentiti
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-User-Id", "X-Admin-Token"));
+        config.setExposedHeaders(List.of("Authorization", "X-User-Id"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+        
+        // 📦 Applica a tutte le rotte
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             // 🔒 Disabilita CSRF (non serve per REST API stateless)
             .csrf(AbstractHttpConfigurer::disable)
 
-            // 🌐 Abilita CORS di default
-            .cors(Customizer.withDefaults())
+            // 🌐 Abilita CORS personalizzato
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
             // ⚙️ Sessione stateless (JWT)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
