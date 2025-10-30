@@ -2,6 +2,7 @@ package com.funkard.user.payment.dto;
 
 import lombok.*;
 import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
 
 /**
  * 📝 Request DTO per creazione/aggiornamento metodi di pagamento

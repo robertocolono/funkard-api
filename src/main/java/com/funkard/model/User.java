@@ -39,6 +39,12 @@ public class User {
     private String avatarUrl;
     private String role = "USER";
     private LocalDateTime createdAt = LocalDateTime.now();
+    
+    // Campi profilo aggiuntivi per compatibilità con UserService
+    private String language;
+    private String theme;
+    private LocalDateTime updatedAt;
+    private LocalDateTime lastLoginAt;
 
     // 🔹 Nuovo campo valuta preferita
     @Column(nullable = false, length = 3)
