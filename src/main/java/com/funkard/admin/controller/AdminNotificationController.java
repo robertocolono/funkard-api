@@ -8,6 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -77,6 +78,17 @@ public class AdminNotificationController {
     @GetMapping("/stream")
     public SseEmitter streamNotifications() {
         return service.subscribe();
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Map<String, Long>> getUnreadCount() {
+        long count = service.getUnreadCount();
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    @GetMapping("/unread-latest")
+    public ResponseEntity<List<AdminNotification>> getUnreadLatest() {
+        return ResponseEntity.ok(service.getUnreadLatest());
     }
 
     public record NoteReq(String note) {}

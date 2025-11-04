@@ -31,4 +31,7 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     long countByPriority(String priority);
     long countByType(String type);
     List<AdminNotification> findByReadTrueAndCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime date);
+    
+    // Metodi per notifiche non lette
+    List<AdminNotification> findTop10ByReadFalseAndArchivedFalseOrderByCreatedAtDesc();
 }

@@ -190,4 +190,13 @@ public class AdminNotificationService {
         AdminNotification saved = repo.save(notif);
         broadcast(saved);
     }
+
+    // Metodi per notifiche non lette
+    public long getUnreadCount() {
+        return repo.countByReadFalse();
+    }
+
+    public List<AdminNotification> getUnreadLatest() {
+        return repo.findTop10ByReadFalseAndArchivedFalseOrderByCreatedAtDesc();
+    }
 }
