@@ -24,6 +24,8 @@ public class AdminAuthController {
     /**
      * 🔍 GET /api/admin/auth/token/{token}
      * Valida un token e restituisce i dati dell'utente
+     * 
+     * Risposta: { "name": "...", "email": "...", "role": "..." }
      */
     @GetMapping("/token/{token}")
     public ResponseEntity<?> validateToken(@PathVariable String token) {
@@ -35,12 +37,9 @@ public class AdminAuthController {
         }
 
         return ResponseEntity.ok(Map.of(
-            "status", "ok",
-            "user", Map.of(
-                "name", user.getName(),
-                "email", user.getEmail(),
-                "role", user.getRole()
-            )
+            "name", user.getName(),
+            "email", user.getEmail(),
+            "role", user.getRole()
         ));
     }
 
