@@ -185,5 +185,15 @@ public class AdminAuthController {
                     .body(Map.of("error", "Errore durante la disattivazione: " + e.getMessage()));
         }
     }
+
+    /**
+     * 🔍 GET /api/admin/auth/diagnostic
+     * Endpoint diagnostico per verificare stato Super Admin
+     * Mostra tutti gli utenti admin e verifica/corregge il Super Admin
+     */
+    @GetMapping("/diagnostic")
+    public ResponseEntity<?> diagnostic() {
+        return ResponseEntity.ok(userService.diagnosticCheck());
+    }
 }
 

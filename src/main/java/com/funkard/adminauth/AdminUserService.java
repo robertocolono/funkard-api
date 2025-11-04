@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 🔐 Service per gestione utenti admin
@@ -214,6 +214,89 @@ public class AdminUserService {
                    UUID.randomUUID().toString() + UUID.randomUUID().toString())
                    .replace("-", "").substring(0, 128);
         }
+    }
+
+    /**
+     * 🔍 Controllo diagnostico: lista tutti gli utenti admin e verifica/corregge Super Admin
+     */
+    public Map<String, Object> diagnosticCheck() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        
+        // Lista tutti gli utenti admin
+        List<AdminUser> allUsers = repository.findAll();
+        List<Map<String, Object>> usersList = allUsers.stream()
+                .map(user -> {
+                    Map<String, Object> userMap = new LinkedHashMap<>();
+                    userMap.put("id", user.getId().toString());
+                    userMap.put("name", user.getName());
+                    userMap.put("email", user.getEmail());
+                    userMap.put("role", user.getRole());
+                    userMap.put("active", user.isActive());
+                    String tokenPreview = user.getAccessToken() != null && user.getAccessToken().length() >= 10
+                        ? user.getAccessToken().substring(0, 10) + "..."
+                        : "***";
+                    userMap.put("accessToken", tokenPreview);
+                    return userMap;
+                })
+                .collect(Collectors.toList());
+        
+        result.put("totalUsers", allUsers.size());
+        result.put("users", usersList);
+        
+        // Verifica Super Admin
+        Optional<AdminUser> superAdminOpt = repository.findFirstByRoleAndActiveTrue("SUPER_ADMIN");
+        
+        if (superAdminOpt.isEmpty()) {
+            // Cerca anche Super Admin inattivo
+            Optional<AdminUser> inactiveSuperAdmin = repository.findAll().stream()
+                    .filter(u -> "SUPER_ADMIN".equals(u.getRole()))
+                    .findFirst();
+            
+            if (inactiveSuperAdmin.isPresent()) {
+                AdminUser superAdmin = inactiveSuperAdmin.get();
+                if (!superAdmin.isActive()) {
+                    logger.info("🔄 Super Admin trovato ma inattivo. Attivazione in corso...");
+                    superAdmin.setActive(true);
+                    repository.save(superAdmin);
+                    result.put("action", "Super Admin attivato (era inattivo)");
+                }
+            } else {
+                logger.info("📋 Tabella admin_users vuota o Super Admin non trovato. Creazione in corso...");
+                ensureSuperAdminExists();
+                result.put("action", "Super Admin creato");
+            }
+        } else {
+            AdminUser superAdmin = superAdminOpt.get();
+            result.put("action", "Super Admin già presente e attivo");
+            
+            // Stampa log finale
+            String tokenPreview = superAdmin.getAccessToken() != null && superAdmin.getAccessToken().length() >= 10
+                ? superAdmin.getAccessToken().substring(0, 10) + "..."
+                : "***";
+            
+            logger.info("✅ SUPER_ADMIN attivo");
+            logger.info("   Email: {}", superAdmin.getEmail());
+            logger.info("   Token: {}", tokenPreview);
+        }
+        
+        // Ricarica Super Admin per mostrarlo nel risultato
+        Optional<AdminUser> finalSuperAdmin = repository.findFirstByRoleAndActiveTrue("SUPER_ADMIN");
+        if (finalSuperAdmin.isPresent()) {
+            AdminUser sa = finalSuperAdmin.get();
+            Map<String, Object> superAdminInfo = new LinkedHashMap<>();
+            superAdminInfo.put("id", sa.getId().toString());
+            superAdminInfo.put("name", sa.getName());
+            superAdminInfo.put("email", sa.getEmail());
+            superAdminInfo.put("role", sa.getRole());
+            superAdminInfo.put("active", sa.isActive());
+            String tokenPreview = sa.getAccessToken() != null && sa.getAccessToken().length() >= 10
+                ? sa.getAccessToken().substring(0, 10) + "..."
+                : "***";
+            superAdminInfo.put("accessToken", tokenPreview);
+            result.put("superAdmin", superAdminInfo);
+        }
+        
+        return result;
     }
 }
 
