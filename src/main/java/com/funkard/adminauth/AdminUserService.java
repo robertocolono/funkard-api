@@ -93,7 +93,7 @@ public class AdminUserService {
     /**
      * 🎯 Assicura che esista un SUPER_ADMIN
      * Se non esiste, lo crea con token da variabile d'ambiente SUPER_ADMIN_TOKEN
-     * Se esiste già, aggiorna l'email a colonoroberto@gmail.com e il token se necessario
+     * Se esiste già, aggiorna solo l'email a colonoroberto@gmail.com (senza rigenerare il token)
      */
     @Transactional
     public void ensureSuperAdminExists() {
@@ -109,24 +109,28 @@ public class AdminUserService {
         // Verifica se esiste già un SUPER_ADMIN attivo
         Optional<AdminUser> existingSuperAdmin = repository.findFirstByRoleAndActiveTrue("SUPER_ADMIN");
         
+        AdminUser superAdmin;
+        
         if (existingSuperAdmin.isPresent()) {
             // Aggiorna SUPER_ADMIN esistente
-            AdminUser superAdmin = existingSuperAdmin.get();
+            superAdmin = existingSuperAdmin.get();
             boolean updated = false;
             
-            // Aggiorna email se diversa
+            // Aggiorna email se diversa (senza modificare il token esistente)
             if (!"colonoroberto@gmail.com".equals(superAdmin.getEmail())) {
+                logger.info("📧 Email SUPER_ADMIN aggiornata da '{}' a 'colonoroberto@gmail.com'", superAdmin.getEmail());
                 superAdmin.setEmail("colonoroberto@gmail.com");
                 updated = true;
-                logger.info("📧 Email SUPER_ADMIN aggiornata a: colonoroberto@gmail.com");
             }
             
-            // Aggiorna token se diverso
-            if (!superAdminToken.equals(superAdmin.getAccessToken())) {
+            // NON aggiornare il token se esiste già - mantieni il token esistente
+            // Aggiorna token solo se non è impostato o è completamente vuoto
+            if (superAdmin.getAccessToken() == null || superAdmin.getAccessToken().trim().isEmpty()) {
                 superAdmin.setAccessToken(superAdminToken);
                 updated = true;
-                logger.info("🔑 Token SUPER_ADMIN aggiornato da variabile d'ambiente");
+                logger.info("🔑 Token SUPER_ADMIN impostato da variabile d'ambiente (token era vuoto)");
             }
+            // Altrimenti mantieni il token esistente senza modificarlo
             
             // Assicura che name, role e active siano corretti
             if (!"Will".equals(superAdmin.getName())) {
@@ -144,32 +148,36 @@ public class AdminUserService {
             
             if (updated) {
                 repository.save(superAdmin);
-                logger.info("✅ SUPER_ADMIN 'Will' aggiornato con successo (email: colonoroberto@gmail.com)");
-            } else {
-                logger.info("✅ SUPER_ADMIN 'Will' già presente e aggiornato (email: colonoroberto@gmail.com)");
+                logger.info("✅ SUPER_ADMIN 'Will' aggiornato con successo");
             }
-            return;
+        } else {
+            // Crea nuovo SUPER_ADMIN "Will"
+            try {
+                superAdmin = new AdminUser(
+                    "Will",
+                    "colonoroberto@gmail.com",
+                    "SUPER_ADMIN",
+                    superAdminToken
+                );
+                
+                repository.save(superAdmin);
+                logger.info("✅ SUPER_ADMIN 'Will' creato con successo");
+                
+            } catch (Exception e) {
+                logger.error("❌ Errore durante la creazione del SUPER_ADMIN: {}", e.getMessage(), e);
+                return; // Esci se non è stato creato
+            }
         }
-
-        // Crea nuovo SUPER_ADMIN "Will"
-        try {
-            AdminUser superAdmin = new AdminUser(
-                "Will",
-                "colonoroberto@gmail.com",
-                "SUPER_ADMIN",
-                superAdminToken
-            );
-            
-            repository.save(superAdmin);
-            String tokenPreview = superAdmin.getAccessToken() != null && superAdmin.getAccessToken().length() > 20 
-                ? superAdmin.getAccessToken().substring(0, 20) + "..." 
-                : "***";
-            logger.info("✅ SUPER_ADMIN 'Will' creato con successo (email: {}, token: {})", 
-                       superAdmin.getEmail(), tokenPreview);
-            
-        } catch (Exception e) {
-            logger.error("❌ Errore durante la creazione del SUPER_ADMIN: {}", e.getMessage(), e);
-        }
+        
+        // Stampa log finale nel formato richiesto
+        String tokenPreview = superAdmin.getAccessToken() != null && superAdmin.getAccessToken().length() >= 10
+            ? superAdmin.getAccessToken().substring(0, 10) + "..."
+            : "***";
+        
+        logger.info("✅ SUPER_ADMIN attivo:");
+        logger.info("   Name: {}", superAdmin.getName());
+        logger.info("   Email: {}", superAdmin.getEmail());
+        logger.info("   Token: {}", tokenPreview);
     }
 
     /**
