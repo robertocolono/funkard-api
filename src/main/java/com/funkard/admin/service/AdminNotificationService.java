@@ -60,6 +60,18 @@ public class AdminNotificationService {
     }
 
     @Transactional
+    public AdminNotification assign(UUID id, String userName) {
+        AdminNotification n = repo.findById(id).orElseThrow();
+        if (n.getAssignedTo() == null) {
+            n.setAssignedTo(userName);
+            n.setAssignedAt(LocalDateTime.now());
+            pushHistory(n, userName, "assigned", null);
+            return repo.save(n);
+        }
+        return n; // Già assegnata, ritorna senza modifiche
+    }
+
+    @Transactional
     public long cleanupArchivedOlderThanDays(int days) {
         LocalDateTime limit = LocalDateTime.now().minusDays(days);
         return repo.deleteByArchivedTrueAndArchivedAtBefore(limit);

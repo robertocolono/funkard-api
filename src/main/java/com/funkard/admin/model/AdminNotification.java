@@ -48,6 +48,12 @@ public class AdminNotification {
     @Column(name = "resolved_by")
     private String resolvedBy;
 
+    @Column(name = "assigned_to")
+    private String assignedTo; // Email o ID dell'admin che ha preso in carico la notifica
+
+    @Column(name = "assigned_at")
+    private LocalDateTime assignedAt;
+
     @Column(name = "history", columnDefinition = "text")
     private String history;
 
@@ -100,6 +106,12 @@ public class AdminNotification {
 
     public String getResolvedBy() { return resolvedBy; }
     public void setResolvedBy(String resolvedBy) { this.resolvedBy = resolvedBy; }
+
+    public String getAssignedTo() { return assignedTo; }
+    public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
+
+    public LocalDateTime getAssignedAt() { return assignedAt; }
+    public void setAssignedAt(LocalDateTime assignedAt) { this.assignedAt = assignedAt; }
 
     public String getHistory() { return history; }
     public void setHistory(String history) { this.history = history; }

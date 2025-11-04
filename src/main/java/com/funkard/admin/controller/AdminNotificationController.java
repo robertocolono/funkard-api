@@ -43,6 +43,12 @@ public class AdminNotificationController {
         return ResponseEntity.ok(service.markRead(id, user));
     }
 
+    @PostMapping("/{id}/assign")
+    public ResponseEntity<AdminNotification> assign(@PathVariable UUID id, Principal principal) {
+        String user = principal != null ? principal.getName() : "admin";
+        return ResponseEntity.ok(service.assign(id, user));
+    }
+
     @PostMapping("/{id}/resolve")
     public ResponseEntity<String> resolve(@PathVariable UUID id,
                                          @RequestBody(required = false) NoteReq body,
