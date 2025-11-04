@@ -195,5 +195,21 @@ public class AdminAuthController {
     public ResponseEntity<?> diagnostic() {
         return ResponseEntity.ok(userService.diagnosticCheck());
     }
+
+    /**
+     * 🔧 POST /api/admin/auth/verify-and-fix
+     * Verifica e corregge il Super Admin con token specifico
+     * Body: { "token": "..." }
+     */
+    @PostMapping("/verify-and-fix")
+    public ResponseEntity<?> verifyAndFix(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        if (token == null || token.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Token richiesto nel body: { \"token\": \"...\" }"));
+        }
+        
+        return ResponseEntity.ok(userService.verifyAndFixSuperAdmin(token));
+    }
 }
 
