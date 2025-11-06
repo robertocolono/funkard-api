@@ -31,5 +31,10 @@ public interface AdminUserRepository extends JpaRepository<AdminUser, UUID> {
      * Trova il primo SUPER_ADMIN attivo
      */
     Optional<AdminUser> findFirstByRoleAndActiveTrue(String role);
+    
+    /**
+     * Trova tutti gli utenti con pending=true
+     */
+    List<AdminUser> findByPendingTrue();
 }
 

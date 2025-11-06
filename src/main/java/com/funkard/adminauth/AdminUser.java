@@ -37,6 +37,18 @@ public class AdminUser {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "is_root", nullable = false)
+    private boolean isRoot = false;
+
+    @Column(nullable = false)
+    private boolean pending = false;
+
+    @Column(name = "requested_at")
+    private LocalDateTime requestedAt;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -54,6 +66,16 @@ public class AdminUser {
         this.role = role;
         this.accessToken = accessToken;
         this.active = true;
+        this.isRoot = false;
+    }
+
+    public AdminUser(String name, String email, String role, String accessToken, boolean isRoot) {
+        this.name = name;
+        this.email = email;
+        this.role = role;
+        this.accessToken = accessToken;
+        this.active = true;
+        this.isRoot = isRoot;
     }
 
     // Getters e Setters
@@ -119,6 +141,38 @@ public class AdminUser {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isRoot() {
+        return isRoot;
+    }
+
+    public void setRoot(boolean root) {
+        isRoot = root;
+    }
+
+    public boolean isPending() {
+        return pending;
+    }
+
+    public void setPending(boolean pending) {
+        this.pending = pending;
+    }
+
+    public LocalDateTime getRequestedAt() {
+        return requestedAt;
+    }
+
+    public void setRequestedAt(LocalDateTime requestedAt) {
+        this.requestedAt = requestedAt;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
     }
 }
 

@@ -40,12 +40,25 @@ public class AdminUserService {
 
     /**
      * ➕ Crea un nuovo utente admin con token generato
+     * @param name Nome utente
+     * @param email Email utente
+     * @param role Ruolo (SUPER_ADMIN, ADMIN, SUPERVISOR)
+     * @param requester Utente che richiede la creazione (per audit)
      */
     @Transactional
-    public AdminUser createUser(String name, String email, String role) {
+    public AdminUser createUser(String name, String email, String role, AdminUser requester) {
         // Verifica se l'email esiste già
         if (repository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("Email già esistente: " + email);
+        }
+
+        // Se si sta creando un SUPER_ADMIN, solo Root può farlo
+        if ("SUPER_ADMIN".equals(role)) {
+            if (requester == null || !requester.isRoot()) {
+                throw new SecurityException("Solo Root Super Admin può creare altri SUPER_ADMIN");
+            }
+            logger.info("[ROOT ACTION] {} ha creato un nuovo SUPER_ADMIN: {} ({})", 
+                requester.getEmail(), name, email);
         }
 
         // Genera token univoco (128 caratteri)
@@ -54,40 +67,193 @@ public class AdminUserService {
         AdminUser user = new AdminUser(name, email, role, token);
         AdminUser saved = repository.save(user);
         
-        logger.info("✅ Creato nuovo utente admin: {} ({})", name, email);
+        logger.info("✅ Creato nuovo utente admin: {} ({}) - Richiesto da: {}", 
+            name, email, requester != null ? requester.getEmail() : "system");
         return saved;
     }
 
     /**
      * 🔄 Rigenera token per un utente esistente
+     * @param id ID dell'utente
+     * @param requester Utente che richiede la rigenerazione (per audit)
      */
     @Transactional
-    public AdminUser regenerateToken(UUID id) {
+    public AdminUser regenerateToken(UUID id, AdminUser requester) {
         AdminUser user = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + id));
+
+        // Se è un SUPER_ADMIN, solo Root può rigenerare il token
+        if ("SUPER_ADMIN".equals(user.getRole())) {
+            if (requester == null || !requester.isRoot()) {
+                throw new SecurityException("Solo Root Super Admin può rigenerare token di SUPER_ADMIN");
+            }
+            logger.info("[ROOT ACTION] {} ha rigenerato token per SUPER_ADMIN: {} ({})", 
+                requester.getEmail(), user.getName(), user.getEmail());
+        }
 
         // Genera nuovo token
         String newToken = generateToken();
         user.setAccessToken(newToken);
         
         AdminUser updated = repository.save(user);
-        logger.info("🔄 Token rigenerato per utente: {} ({})", user.getName(), user.getEmail());
+        logger.info("🔄 Token rigenerato per utente: {} ({}) - Richiesto da: {}", 
+            user.getName(), user.getEmail(), requester != null ? requester.getEmail() : "system");
         
         return updated;
     }
 
     /**
      * 🚫 Disattiva un utente admin
+     * @param id ID dell'utente
+     * @param requester Utente che richiede la disattivazione (per audit)
      */
     @Transactional
-    public void deactivate(UUID id) {
+    public void deactivate(UUID id, AdminUser requester) {
         AdminUser user = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + id));
+
+        // Non permettere di disattivare se stessi
+        if (requester != null && requester.getId().equals(id)) {
+            throw new SecurityException("Non puoi disattivare il tuo stesso account");
+        }
+
+        // Se è un SUPER_ADMIN, solo Root può disattivarlo
+        if ("SUPER_ADMIN".equals(user.getRole())) {
+            if (requester == null || !requester.isRoot()) {
+                throw new SecurityException("Solo Root Super Admin può disattivare SUPER_ADMIN");
+            }
+            
+            // Verifica invariante: deve esistere sempre almeno un SUPER_ADMIN attivo
+            long activeSuperAdmins = repository.findAll().stream()
+                    .filter(u -> "SUPER_ADMIN".equals(u.getRole()) && u.isActive())
+                    .count();
+            
+            if (activeSuperAdmins <= 1) {
+                throw new SecurityException("Impossibile disattivare: deve esistere sempre almeno un SUPER_ADMIN attivo");
+            }
+            
+            logger.info("[ROOT ACTION] {} ha disattivato SUPER_ADMIN: {} ({})", 
+                requester.getEmail(), user.getName(), user.getEmail());
+        }
 
         user.setActive(false);
         repository.save(user);
         
-        logger.info("🚫 Utente admin disattivato: {} ({})", user.getName(), user.getEmail());
+        logger.info("🚫 Utente admin disattivato: {} ({}) - Richiesto da: {}", 
+            user.getName(), user.getEmail(), requester != null ? requester.getEmail() : "system");
+    }
+    
+    /**
+     * ✅ Riattiva un utente admin
+     * @param id ID dell'utente
+     * @param requester Utente che richiede la riattivazione (per audit)
+     */
+    @Transactional
+    public void activate(UUID id, AdminUser requester) {
+        AdminUser user = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + id));
+
+        // Se è un SUPER_ADMIN, solo Root può riattivarlo
+        if ("SUPER_ADMIN".equals(user.getRole())) {
+            if (requester == null || !requester.isRoot()) {
+                throw new SecurityException("Solo Root Super Admin può riattivare SUPER_ADMIN");
+            }
+            logger.info("[ROOT ACTION] {} ha riattivato SUPER_ADMIN: {} ({})", 
+                requester.getEmail(), user.getName(), user.getEmail());
+        }
+
+        user.setActive(true);
+        repository.save(user);
+        
+        logger.info("✅ Utente admin riattivato: {} ({}) - Richiesto da: {}", 
+            user.getName(), user.getEmail(), requester != null ? requester.getEmail() : "system");
+    }
+    
+    /**
+     * 🔄 Cambia ruolo di un utente
+     * @param id ID dell'utente
+     * @param newRole Nuovo ruolo
+     * @param requester Utente che richiede il cambio (per audit)
+     */
+    @Transactional
+    public void changeRole(UUID id, String newRole, AdminUser requester) {
+        AdminUser user = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Utente non trovato: " + id));
+
+        // Non permettere di cambiare il proprio ruolo
+        if (requester != null && requester.getId().equals(id)) {
+            throw new SecurityException("Non puoi cambiare il tuo stesso ruolo");
+        }
+
+        String oldRole = user.getRole();
+        
+        // Se si sta promuovendo/demotando verso/da SUPER_ADMIN, solo Root può farlo
+        if ("SUPER_ADMIN".equals(oldRole) || "SUPER_ADMIN".equals(newRole)) {
+            if (requester == null || !requester.isRoot()) {
+                throw new SecurityException("Solo Root Super Admin può promuovere/demotere verso/da SUPER_ADMIN");
+            }
+            
+            // Se si sta demotendo un SUPER_ADMIN, verifica invariante
+            if ("SUPER_ADMIN".equals(oldRole) && !"SUPER_ADMIN".equals(newRole)) {
+                long activeSuperAdmins = repository.findAll().stream()
+                        .filter(u -> "SUPER_ADMIN".equals(u.getRole()) && u.isActive())
+                        .count();
+                
+                if (activeSuperAdmins <= 1) {
+                    throw new SecurityException("Impossibile demotere: deve esistere sempre almeno un SUPER_ADMIN attivo");
+                }
+            }
+        }
+
+        user.setRole(newRole);
+        repository.save(user);
+        
+        // Logging chiaro per azioni Root
+        if (requester != null && requester.isRoot()) {
+            if ("SUPER_ADMIN".equals(oldRole) && !"SUPER_ADMIN".equals(newRole)) {
+                logger.info("[ROOT ACTION] {} ha retrocesso {} da SUPER_ADMIN a {}", 
+                    requester.getEmail(), user.getEmail(), newRole);
+            } else if (!"SUPER_ADMIN".equals(oldRole) && "SUPER_ADMIN".equals(newRole)) {
+                logger.info("[ROOT ACTION] {} ha promosso {} a SUPER_ADMIN", 
+                    requester.getEmail(), user.getEmail());
+            } else {
+                logger.info("[ROOT ACTION] {} ha cambiato ruolo di {} da {} a {}", 
+                    requester.getEmail(), user.getEmail(), oldRole, newRole);
+            }
+        } else {
+            logger.info("🔄 Ruolo cambiato per utente: {} ({}) da {} a {} - Richiesto da: {}", 
+                user.getName(), user.getEmail(), oldRole, newRole, requester != null ? requester.getEmail() : "system");
+        }
+    }
+    
+    /**
+     * 📋 Lista tutti gli utenti admin
+     * @param requester Utente che richiede la lista (per filtrare isRoot)
+     */
+    public List<Map<String, Object>> listAllUsers(AdminUser requester) {
+        boolean isRootRequester = requester != null && requester.isRoot();
+        
+        return repository.findAll().stream()
+                .map(user -> {
+                    Map<String, Object> userMap = new LinkedHashMap<>();
+                    userMap.put("id", user.getId().toString());
+                    userMap.put("name", user.getName());
+                    userMap.put("email", user.getEmail());
+                    userMap.put("role", user.getRole());
+                    userMap.put("active", user.isActive());
+                    
+                    // Mostra isRoot solo se il chiamante è root
+                    if (isRootRequester) {
+                        userMap.put("isRoot", user.isRoot());
+                    }
+                    
+                    String tokenPreview = user.getAccessToken() != null && user.getAccessToken().length() >= 12
+                        ? user.getAccessToken().substring(0, 12) + "..."
+                        : "***";
+                    userMap.put("accessToken", tokenPreview);
+                    return userMap;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -169,22 +335,30 @@ public class AdminUserService {
                 logger.info("✅ SUPER_ADMIN 'Will' aggiornato con successo");
             }
         } else {
-            // Crea nuovo SUPER_ADMIN "Will"
+            // Crea nuovo SUPER_ADMIN "Will" con isRoot=true
             try {
                 superAdmin = new AdminUser(
                     "Will",
                     "colonoroberto@gmail.com",
                     "SUPER_ADMIN",
-                    superAdminToken
+                    superAdminToken,
+                    true  // isRoot=true per il Super Admin bootstrappato
                 );
                 
                 repository.save(superAdmin);
-                logger.info("✅ SUPER_ADMIN 'Will' creato con successo");
+                logger.info("✅ SUPER_ADMIN 'Will' creato con successo (isRoot=true)");
                 
             } catch (Exception e) {
                 logger.error("❌ Errore durante la creazione del SUPER_ADMIN: {}", e.getMessage(), e);
                 return; // Esci se non è stato creato
             }
+        }
+        
+        // Assicura che il Super Admin bootstrappato abbia isRoot=true
+        if (!superAdmin.isRoot()) {
+            superAdmin.setRoot(true);
+            repository.save(superAdmin);
+            logger.info("✅ SUPER_ADMIN 'Will' impostato come Root");
         }
         
         // Stampa log finale nel formato richiesto
@@ -196,6 +370,14 @@ public class AdminUserService {
         logger.info("   Name: {}", superAdmin.getName());
         logger.info("   Email: {}", superAdmin.getEmail());
         logger.info("   Token: {}", tokenPreview);
+    }
+
+    /**
+     * 🔑 Genera un token univoco di 128 caratteri (pubblico per uso esterno)
+     * Usa UUID + SHA256 per garantire unicità e lunghezza fissa
+     */
+    public String generateUserToken() {
+        return generateToken();
     }
 
     /**
