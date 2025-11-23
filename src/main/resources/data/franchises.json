@@ -1,0 +1,80 @@
+[
+  {
+    "category": "TCG / Anime",
+    "franchises": [
+      "Pokémon",
+      "Yu-Gi-Oh!",
+      "Magic: The Gathering",
+      "One Piece",
+      "Dragon Ball Super",
+      "Digimon",
+      "Naruto",
+      "Bleach",
+      "Attack on Titan",
+      "My Hero Academia",
+      "Demon Slayer",
+      "Jujutsu Kaisen"
+    ]
+  },
+  {
+    "category": "TCG",
+    "franchises": [
+      "Pokémon",
+      "Yu-Gi-Oh!",
+      "Magic: The Gathering",
+      "One Piece",
+      "Dragon Ball Super",
+      "Digimon",
+      "MetaZoo",
+      "Flesh and Blood",
+      "Weiss Schwarz",
+      "Cardfight!! Vanguard",
+      "Final Fantasy TCG",
+      "Force of Will"
+    ]
+  },
+  {
+    "category": "Anime",
+    "franchises": [
+      "Naruto",
+      "Dragon Ball",
+      "One Piece",
+      "Bleach",
+      "Attack on Titan",
+      "My Hero Academia",
+      "Demon Slayer",
+      "Jujutsu Kaisen",
+      "Fullmetal Alchemist",
+      "Death Note",
+      "Hunter x Hunter",
+      "JoJo's Bizarre Adventure"
+    ]
+  },
+  {
+    "category": "Sportive",
+    "franchises": [
+      "Panini NBA",
+      "Panini NFL",
+      "Topps MLB",
+      "Panini FIFA",
+      "Upper Deck NHL",
+      "Panini UFC",
+      "Topps F1",
+      "Panini MotoGP"
+    ]
+  },
+  {
+    "category": "Altro",
+    "franchises": [
+      "Disney",
+      "Marvel",
+      "DC Comics",
+      "Star Wars",
+      "Harry Potter",
+      "Lord of the Rings",
+      "Harry Potter TCG",
+      "Star Wars TCG"
+    ]
+  }
+]
+

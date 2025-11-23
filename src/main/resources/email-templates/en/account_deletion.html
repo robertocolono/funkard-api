@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deletion Completed - ${brandName}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+    <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #f2b237; margin: 0;">${brandName}</h1>
+        </div>
+        
+        <h2 style="color: #333; margin-top: 0;">Account Deletion Completed</h2>
+        
+        <p>Hello ${userName},</p>
+        
+        <p>We confirm that your ${brandName} account and personal data have been permanently deleted on <strong>${date}</strong>.</p>
+        
+        <p style="color: #d32f2f; font-weight: bold; padding: 15px; background-color: #ffebee; border-radius: 8px;">
+            ⚠️ This operation is irreversible.
+        </p>
+        
+        <p>If you need assistance, please contact:</p>
+        <ul>
+            <li><a href="mailto:${legalEmail}">${legalEmail}</a></li>
+            <li><a href="mailto:${supportEmail}">${supportEmail}</a></li>
+        </ul>
+        
+        <p>Thank you for using ${brandName}.</p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="margin-top: 30px; color: #666; font-size: 12px;">
+            — ${brandName} Team<br>
+            This email was sent automatically. Please do not reply.
+        </p>
+    </div>
+</body>
+</html>
+

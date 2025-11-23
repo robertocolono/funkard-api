@@ -19,11 +19,6 @@ public interface FranchiseProposalRepository extends JpaRepository<FranchiseProp
     List<FranchiseProposal> findByStatusOrderByCreatedAtDesc(FranchiseProposal.ProposalStatus status);
     
     /**
-     * Trova proposte pending
-     */
-    List<FranchiseProposal> findByStatusOrderByCreatedAtDesc(FranchiseProposal.ProposalStatus status);
-    
-    /**
      * Trova proposte per utente
      */
     List<FranchiseProposal> findByUserIdOrderByCreatedAtDesc(Long userId);

@@ -1,0 +1,1 @@
+This language (pt) is not yet fully translated. The English version will be used as fallback.

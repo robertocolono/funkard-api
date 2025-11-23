@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica il tuo account ${brandName}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+    <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #f2b237; margin: 0;">${brandName}</h1>
+        </div>
+        
+        <h2 style="color: #333; margin-top: 0;">Benvenuto su ${brandName}!</h2>
+        
+        <p>Ciao ${userName},</p>
+        
+        <p>Grazie per esserti registrato su ${brandName}. Per completare la registrazione, clicca sul pulsante qui sotto per verificare il tuo account:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="${verifyUrl}" style="background-color: #f2b237; color: #000; padding: 12px 30px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold;">
+                Verifica il mio account
+            </a>
+        </div>
+        
+        <p>Oppure copia e incolla questo link nel tuo browser:</p>
+        <p style="word-break: break-all; color: #666; font-size: 12px;">${verifyUrl}</p>
+        
+        <p style="color: #d32f2f; font-weight: bold;">⚠️ Il link scadrà tra 24 ore.</p>
+        
+        <p>Se non hai richiesto questa registrazione, puoi ignorare questa email.</p>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <p style="margin-top: 30px; color: #666; font-size: 12px;">
+            — Team ${brandName}<br>
+            Questa email è stata inviata automaticamente. Si prega di non rispondere.
+        </p>
+    </div>
+</body>
+</html>
+

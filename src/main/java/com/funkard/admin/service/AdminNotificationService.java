@@ -27,9 +27,17 @@ public class AdminNotificationService {
     public List<AdminNotification> listActiveChrono() {
         return repo.findByArchivedFalseOrderByCreatedAtAsc();
     }
+    
+    public org.springframework.data.domain.Page<AdminNotification> listActiveChronoPaginated(org.springframework.data.domain.Pageable pageable) {
+        return repo.findByArchivedFalseOrderByCreatedAtDesc(pageable);
+    }
 
     public List<AdminNotification> filter(String type, String priority, String status) {
         return repo.filter(emptyToNull(type), emptyToNull(priority), emptyToNull(status));
+    }
+    
+    public org.springframework.data.domain.Page<AdminNotification> filterPaginated(String type, String priority, String status, org.springframework.data.domain.Pageable pageable) {
+        return repo.filterPaginated(emptyToNull(type), emptyToNull(priority), emptyToNull(status), pageable);
     }
 
     public Optional<AdminNotification> get(UUID id) {

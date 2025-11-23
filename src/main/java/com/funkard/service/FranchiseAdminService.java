@@ -7,8 +7,10 @@ import com.funkard.repository.FranchiseRepository;
 import com.funkard.repository.FranchiseProposalRepository;
 import com.funkard.repository.UserRepository;
 import com.funkard.admin.service.AdminNotificationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

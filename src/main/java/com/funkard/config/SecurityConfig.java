@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -31,10 +32,10 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
     }
 
-        @Bean
-        public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-            return configuration.getAuthenticationManager();
-        }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -45,17 +46,18 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // 🌍 Origini permesse
+        // 🌍 Origini permesse (rimossi domini Vercel vecchi)
         config.setAllowedOrigins(List.of(
             "https://www.funkard.com",
             "https://funkard.com",
+            "https://admin.funkard.com",
             "http://localhost:3000",
             "http://localhost:3002"
         ));
         
         // 🔑 Metodi e header consentiti
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-User-Id", "X-Admin-Token"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-User-Id"));
         config.setExposedHeaders(List.of("Authorization", "X-User-Id"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
@@ -81,20 +83,41 @@ public class SecurityConfig {
 
             // 🔓 Regole di accesso
             .authorizeHttpRequests(auth -> auth
+                // 🔓 Endpoint pubblici
                 .requestMatchers(
                     "/api/auth/**",
-                    "/api/listings/**",
-                    "/api/cards/**",
-                    "/api/usercards/**",
-                    "/api/collection/**",
-                    "/api/gradelens/**",
-                    "/api/collection/**",
-                    "/api/admin/**",
-                    "/api/user/payments/**",
-                    "/api/user/me",
-                    "/api/user/address/**",
+                    "/api/translate/**",
+                    "/",
+                    "/health",
+                    "/api/test/**",
                     "/actuator/**"
                 ).permitAll()
+                
+                // 🔐 Endpoint admin richiedono autenticazione (gestiti da @PreAuthorize)
+                .requestMatchers("/api/admin/**").authenticated()
+                
+                // 🔐 Endpoint utente richiedono autenticazione
+                .requestMatchers(
+                    "/api/user/**",
+                    "/api/support/**",
+                    "/api/usercards/**",
+                    "/api/collection/**",
+                    "/api/wishlist/**",
+                    "/api/gradelens/**",
+                    "/api/grading/**"
+                ).authenticated()
+                
+                // 🔓 Endpoint pubblici per marketplace
+                .requestMatchers(
+                    "/api/listings/**",
+                    "/api/cards/**",
+                    "/api/products/**",
+                    "/api/valuation/**",
+                    "/api/trends/**",
+                    "/api/ads/**"
+                ).permitAll()
+                
+                // 🔐 Tutti gli altri endpoint richiedono autenticazione
                 .anyRequest().authenticated()
             )
 
@@ -104,16 +127,6 @@ public class SecurityConfig {
             // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable);
-
-        // 👇 Log delle chiamate provenienti dal pannello admin (dopo CORS)
-        http.addFilterAfter((servletRequest, response, chain) -> {
-            HttpServletRequest request = (HttpServletRequest) servletRequest;
-            String origin = request.getHeader("Origin");
-            if (origin != null && (origin.contains("funkard.com") || origin.contains("localhost"))) {
-                System.out.println("✅ Request from Funkard detected: " + request.getRequestURI());
-            }
-            chain.doFilter(servletRequest, response);
-        }, org.springframework.web.filter.CorsFilter.class);
 
         return http.build();
     }

@@ -1,0 +1,69 @@
+This language is not yet fully translated. 
+The English version will be used as fallback.
+
+Questa lingua non è ancora completamente tradotta.
+Verrà utilizzata la versione inglese come fallback.
+
+Esta lengua aún no está completamente traducida.
+Se utilizará la versión en inglés como respaldo.
+
+Diese Sprache ist noch nicht vollständig übersetzt.
+Die englische Version wird als Fallback verwendet.
+
+Cette langue n'est pas encore entièrement traduite.
+La version anglaise sera utilisée comme solution de secours.
+
+Esta língua ainda não está totalmente traduzida.
+A versão em inglês será usada como fallback.
+
+Deze taal is nog niet volledig vertaald.
+De Engelse versie wordt gebruikt als fallback.
+
+Ten język nie jest jeszcze w pełni przetłumaczony.
+Wersja angielska zostanie użyta jako zapasowa.
+
+この言語はまだ完全に翻訳されていません。
+英語版がフォールバックとして使用されます。
+
+该语言尚未完全翻译。
+将使用英文版本作为后备。
+
+이 언어는 아직 완전히 번역되지 않았습니다.
+영어 버전이 대체로 사용됩니다.
+
+Bahasa ini belum sepenuhnya diterjemahkan.
+Versi bahasa Inggris akan digunakan sebagai cadangan.
+
+यह भाषा अभी तक पूरी तरह से अनुवादित नहीं है।
+अंग्रेजी संस्करण को फॉलबैक के रूप में उपयोग किया जाएगा。
+
+ภาษาอื่นยังไม่ได้รับการแปลอย่างสมบูรณ์
+จะใช้เวอร์ชันภาษาอังกฤษเป็นทางเลือกสำรอง
+
+Bahasa ini belum diterjemahkan sepenuhnya.
+Versi bahasa Inggeris akan digunakan sebagai sandaran.
+
+Ngôn ngữ này chưa được dịch đầy đủ.
+Phiên bản tiếng Anh sẽ được sử dụng làm dự phòng.
+
+Ang wikang ito ay hindi pa ganap na naisalin.
+Ang bersyon ng Ingles ay gagamitin bilang fallback.
+
+Bu dil henüz tam olarak çevrilmemiş.
+İngilizce sürüm yedek olarak kullanılacaktır.
+
+هذه اللغة لم يتم ترجمتها بالكامل بعد.
+سيتم استخدام النسخة الإنجليزية كبديل.
+
+שפה זו עדיין לא תורגמה במלואה.
+גרסת האנגלית תשמש כגיבוי.
+
+این زبان هنوز به طور کامل ترجمه نشده است.
+نسخه انگلیسی به عنوان پشتیبان استفاده خواهد شد.
+
+Lugha hii bado haijatafsiriwa kikamilifu.
+Toleo la Kiingereza litatumika kama nyuma.
+
+Lolu limi alukahle alugcwalisiwe ngokupheleleyo.
+Inguqulo yesiNgisi izosetyenziswa njengendlela yokubuyela.
+

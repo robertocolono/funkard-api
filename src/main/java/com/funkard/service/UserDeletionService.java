@@ -4,7 +4,7 @@ import com.funkard.model.*;
 import com.funkard.repository.*;
 import com.funkard.admin.repository.SupportTicketRepository;
 import com.funkard.admin.model.SupportTicket;
-import com.funkard.storage.R2Service;
+import com.funkard.service.R2Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -4,6 +4,15 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    # === 🗄️ HikariCP Connection Pool (Ottimizzato per Neon Postgres)
+    # Riduce compute Neon e migliora stabilità senza impattare performance
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      validation-timeout: 5000
 
   jpa:
     hibernate:
@@ -43,3 +52,33 @@ management:
 admin:
   email: ${ADMIN_EMAIL:}
   token: ${ADMIN_TOKEN:}
+
+# === 📧 Email Configuration (Primary: no-reply@funkard.com)
+MAIL_HOST: ${MAIL_HOST:smtp.register.it}
+MAIL_PORT: ${MAIL_PORT:587}
+MAIL_USERNAME: ${MAIL_USERNAME:no-reply@funkard.com}
+MAIL_PASSWORD: ${MAIL_PASSWORD:}
+MAIL_FROM: ${MAIL_FROM:no-reply@funkard.com}
+MAIL_FROM_NAME: ${MAIL_FROM_NAME:Funkard}
+
+# === 📧 Email Configuration (Fallback: support@funkard.com)
+MAIL_FALLBACK: ${MAIL_FALLBACK:support@funkard.com}
+MAIL_FALLBACK_HOST: ${MAIL_FALLBACK_HOST:${MAIL_HOST:smtp.register.it}}
+MAIL_FALLBACK_PORT: ${MAIL_FALLBACK_PORT:${MAIL_PORT:587}}
+MAIL_FALLBACK_USERNAME: ${MAIL_FALLBACK_USERNAME:support@funkard.com}
+MAIL_FALLBACK_PASSWORD: ${MAIL_FALLBACK_PASSWORD:}
+
+# === 📧 Spring Mail (legacy - mantenuto per compatibilità)
+mail:
+  host: ${MAIL_HOST:smtp.register.it}
+  port: ${MAIL_PORT:587}
+  username: ${MAIL_USERNAME:no-reply@funkard.com}
+  password: ${MAIL_PASSWORD:}
+  from: Funkard <no-reply@funkard.com>
+  from.address: ${MAIL_FROM:no-reply@funkard.com}
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true

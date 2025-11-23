@@ -1,242 +1,232 @@
 package com.funkard.admin.controller;
 
 import com.funkard.admin.dto.SupportMessageDTO;
-import com.funkard.admin.dto.SupportStatsDTO;
-import com.funkard.admin.dto.TicketDTO;
-import com.funkard.admin.model.SupportMessage;
 import com.funkard.admin.model.SupportTicket;
-import com.funkard.admin.service.AdminSupportService;
-import com.funkard.admin.service.SupportService;
 import com.funkard.admin.service.SupportTicketService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 🎫 Controller per gestione supporto admin
+ * Richiede autenticazione JWT con ruolo ADMIN o SUPER_ADMIN
+ */
 @RestController
 @RequestMapping("/api/admin/support")
-@CrossOrigin(origins = {"https://admin.funkard.com", "https://funkard.vercel.app"})
+@RequiredArgsConstructor
+@Slf4j
+@CrossOrigin(origins = {"https://funkard.com", "https://www.funkard.com", "https://admin.funkard.com", "http://localhost:3000", "http://localhost:3002"})
 public class AdminSupportController {
 
-    @Autowired
-    private SupportTicketService supportTicketService;
+    private final SupportTicketService supportTicketService;
 
-    @Autowired
-    private AdminSupportService adminSupportService;
-
-    @Autowired
-    private SupportService service;
-    
-    @Value("${admin.token}")
-    private String adminToken;
-
-    // 📋 Lista tutti i ticket
+    // 📋 Lista tutti i ticket (con paginazione)
     @GetMapping("/tickets")
-    public ResponseEntity<?> getAllTickets(@RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(supportTicketService.findAll());
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Page<SupportTicket>> getAllTickets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sortDir) {
+        log.info("📋 Richiesta lista ticket (page={}, size={}, sort={})", page, size, sortBy);
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortBy));
+        Page<SupportTicket> tickets = supportTicketService.findAll(pageable);
+        
+        log.info("✅ Restituiti {} ticket (totale: {})", tickets.getNumberOfElements(), tickets.getTotalElements());
+        return ResponseEntity.ok(tickets);
     }
 
     // 📈 Statistiche ultime 30 giornate
     @GetMapping("/stats")
-    public ResponseEntity<?> getStats(@RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(adminSupportService.getStatsLast30Days());
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> getStats() {
+        log.info("📈 Richiesta statistiche supporto");
+        return ResponseEntity.ok(supportTicketService.getStatsLast30Days());
     }
 
     // 💬 Rispondi a un ticket specifico
     @PostMapping("/reply/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> replyToTicket(
             @PathVariable UUID id,
-            @RequestBody SupportMessageDTO payload,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+            @RequestBody SupportMessageDTO payload) {
+        log.info("💬 Risposta a ticket {}", id);
 
         try {
-            SupportMessage reply = supportTicketService.addAdminReply(id, payload.getSender(), payload.getContent());
-
-            // 🔔 Notifica real-time nuovo messaggio (utente + admin)
+            var reply = supportTicketService.addAdminReply(id, payload.getSender(), payload.getContent());
             supportTicketService.broadcastTicketUpdate(reply.getTicket(), "NEW_MESSAGE", true);
-
+            
+            log.info("✅ Risposta inviata con successo per ticket {}", id);
             return ResponseEntity.ok(reply);
         } catch (Exception e) {
+            log.error("❌ Errore durante l'invio della risposta per ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante l'invio della risposta: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante l'invio della risposta: " + e.getMessage()));
         }
     }
 
-    // 🎯 Risolvi ticket (notifica l'utente)
+    // 🎯 Risolvi ticket
     @PostMapping("/resolve/{id}")
-    public ResponseEntity<?> resolveTicket(
-            @PathVariable UUID id,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> resolveTicket(@PathVariable UUID id) {
+        log.info("🎯 Risoluzione ticket {}", id);
 
         try {
             SupportTicket ticket = supportTicketService.resolveTicket(id);
+            log.info("✅ Ticket {} risolto con successo", id);
             return ResponseEntity.ok(ticket);
         } catch (Exception e) {
+            log.error("❌ Errore durante la risoluzione del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante la risoluzione del ticket: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante la risoluzione del ticket: " + e.getMessage()));
         }
     }
 
-    // 🏁 Chiudi ticket (solo admin)
+    // 🏁 Chiudi ticket
     @PostMapping("/close/{id}")
-    public ResponseEntity<?> closeTicket(
-            @PathVariable UUID id,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> closeTicket(@PathVariable UUID id) {
+        log.info("🏁 Chiusura ticket {}", id);
 
         try {
             SupportTicket ticket = supportTicketService.closeTicket(id);
+            log.info("✅ Ticket {} chiuso con successo", id);
             return ResponseEntity.ok(ticket);
         } catch (Exception e) {
+            log.error("❌ Errore durante la chiusura del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante la chiusura del ticket: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante la chiusura del ticket: " + e.getMessage()));
         }
     }
 
-    // 🔄 Riapri ticket (solo admin)
+    // 🔄 Riapri ticket
     @PostMapping("/reopen/{id}")
-    public ResponseEntity<?> reopenTicket(
-            @PathVariable UUID id,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> reopenTicket(@PathVariable UUID id) {
+        log.info("🔄 Riapertura ticket {}", id);
 
         try {
             SupportTicket ticket = supportTicketService.reopenTicket(id);
+            log.info("✅ Ticket {} riaperto con successo", id);
             return ResponseEntity.ok(ticket);
         } catch (Exception e) {
+            log.error("❌ Errore durante la riapertura del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante la riapertura del ticket: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante la riapertura del ticket: " + e.getMessage()));
         }
     }
 
     // 👨‍💻 Marca messaggi come letti
     @PostMapping("/{id}/mark-read")
-    public ResponseEntity<?> markMessagesAsRead(
-            @PathVariable UUID id,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> markMessagesAsRead(@PathVariable UUID id) {
+        log.info("👨‍💻 Marcatura messaggi come letti per ticket {}", id);
 
         try {
             supportTicketService.markMessagesAsRead(id);
-            return ResponseEntity.ok().body("Messaggi marcati come letti");
+            log.info("✅ Messaggi marcati come letti per ticket {}", id);
+            return ResponseEntity.ok(Map.of("message", "Messaggi marcati come letti"));
         } catch (Exception e) {
+            log.error("❌ Errore durante il marking dei messaggi per ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante il marking dei messaggi: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante il marking dei messaggi: " + e.getMessage()));
         }
     }
 
     // 📊 Conta ticket con nuovi messaggi
     @GetMapping("/new-messages-count")
-    public ResponseEntity<?> getNewMessagesCount(@RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        try {
-            long count = supportTicketService.countTicketsWithNewMessages();
-            return ResponseEntity.ok().body(Map.of("count", count));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante il conteggio: " + e.getMessage());
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Map<String, Long>> getNewMessagesCount() {
+        log.info("📊 Richiesta conteggio ticket con nuovi messaggi");
+        
+        long count = supportTicketService.countTicketsWithNewMessages();
+        log.info("✅ Ticket con nuovi messaggi: {}", count);
+        return ResponseEntity.ok(Map.of("count", count));
     }
 
     // 👨‍💻 Assegna ticket a un support
     @PostMapping("/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> assignTicket(
             @PathVariable UUID id,
-            @RequestParam String supportEmail,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+            @RequestParam String supportEmail) {
+        log.info("👨‍💻 Assegnazione ticket {} a {}", id, supportEmail);
 
         try {
             SupportTicket ticket = supportTicketService.assignTicket(id, supportEmail);
+            log.info("✅ Ticket {} assegnato a {}", id, supportEmail);
             return ResponseEntity.ok(ticket);
         } catch (IllegalStateException e) {
+            log.warn("⚠️ Errore durante l'assegnazione del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Errore: " + e.getMessage());
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            log.error("❌ Errore durante l'assegnazione del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante l'assegnazione: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante l'assegnazione: " + e.getMessage()));
         }
     }
 
     // 🔓 Rilascia ticket (unlock)
     @PostMapping("/{id}/release")
-    public ResponseEntity<?> releaseTicket(
-            @PathVariable UUID id,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> releaseTicket(@PathVariable UUID id) {
+        log.info("🔓 Rilascio ticket {}", id);
 
         try {
             SupportTicket ticket = supportTicketService.releaseTicket(id);
+            log.info("✅ Ticket {} rilasciato con successo", id);
             return ResponseEntity.ok(ticket);
         } catch (IllegalStateException e) {
+            log.warn("⚠️ Errore durante il rilascio del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Errore: " + e.getMessage());
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            log.error("❌ Errore durante il rilascio del ticket {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante il rilascio: " + e.getMessage());
+                    .body(Map.of("error", "Errore durante il rilascio: " + e.getMessage()));
         }
     }
 
-    // 📋 Lista ticket assegnati a un support
+    // 📋 Lista ticket assegnati a un support (con paginazione)
     @GetMapping("/assigned/{supportEmail}")
-    public ResponseEntity<?> getAssignedTickets(
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Page<SupportTicket>> getAssignedTickets(
             @PathVariable String supportEmail,
-            @RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        try {
-            List<SupportTicket> tickets = supportTicketService.getTicketsAssignedTo(supportEmail);
-            return ResponseEntity.ok(tickets);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante il recupero: " + e.getMessage());
-        }
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sortDir) {
+        log.info("📋 Richiesta ticket assegnati a {} (page={}, size={})", supportEmail, page, size);
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortBy));
+        Page<SupportTicket> tickets = supportTicketService.findByAssignedTo(supportEmail, pageable);
+        
+        log.info("✅ Restituiti {} ticket assegnati a {} (totale: {})", 
+            tickets.getNumberOfElements(), supportEmail, tickets.getTotalElements());
+        return ResponseEntity.ok(tickets);
     }
 
     // 📊 Conta ticket assegnati
     @GetMapping("/assigned-count")
-    public ResponseEntity<?> getAssignedCount(@RequestHeader("X-Admin-Token") String token) {
-        if (!token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        try {
-            long count = supportTicketService.countAssignedTickets();
-            return ResponseEntity.ok().body(Map.of("count", count));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Errore durante il conteggio: " + e.getMessage());
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Map<String, Long>> getAssignedCount() {
+        log.info("📊 Richiesta conteggio ticket assegnati");
+        
+        long count = supportTicketService.countAssignedTickets();
+        log.info("✅ Ticket assegnati: {}", count);
+        return ResponseEntity.ok(Map.of("count", count));
     }
 }

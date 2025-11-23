@@ -2,30 +2,29 @@ package com.funkard.admin.controller;
 
 import com.funkard.admin.dto.AdminStatsDTO;
 import com.funkard.admin.service.AdminStatsService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 📊 Controller per statistiche admin
+ * Richiede autenticazione JWT con ruolo ADMIN o SUPER_ADMIN
+ */
 @RestController
 @RequestMapping("/api/admin/stats")
-@CrossOrigin(origins = {"https://admin.funkard.com", "https://funkard.vercel.app"})
+@RequiredArgsConstructor
+@Slf4j
+@CrossOrigin(origins = {"https://admin.funkard.com", "https://funkard.com", "https://www.funkard.com", "http://localhost:3000", "http://localhost:3002"})
 public class AdminStatsController {
 
     private final AdminStatsService service;
 
-    @Value("${admin.token}")
-    private String adminToken;
-
-    public AdminStatsController(AdminStatsService service) {
-        this.service = service;
-    }
-
     @GetMapping
-    public ResponseEntity<?> getStats(@RequestHeader(value = "X-Admin-Token", required = false) String token) {
-        if (token == null || !token.equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized");
-        }
-
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<AdminStatsDTO> getStats() {
+        log.info("📊 Richiesta statistiche admin");
         AdminStatsDTO stats = service.getStats();
         return ResponseEntity.ok(stats);
     }

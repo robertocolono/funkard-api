@@ -26,6 +26,26 @@ public class Product {
     @Column(name = "user_id")
     private String userId;
     
+    /**
+     * 🌍 Descrizione prodotto originale (testo scritto dall'utente)
+     * Salvata nella lingua originale per traduzione on-demand
+     */
+    @Column(name = "description_original", columnDefinition = "TEXT")
+    private String descriptionOriginal;
+    
+    /**
+     * 🌍 Lingua originale della descrizione (codice ISO 639-1, es. "it", "en", "es")
+     */
+    @Column(name = "description_language", length = 5)
+    private String descriptionLanguage;
+    
+    /**
+     * 🌍 Nome prodotto tradotto in inglese
+     * Solo se l'utente lo inserisce in una lingua diversa da "en"
+     */
+    @Column(name = "name_en", length = 255)
+    private String nameEn;
+    
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

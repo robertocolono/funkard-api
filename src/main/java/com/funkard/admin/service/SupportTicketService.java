@@ -46,27 +46,31 @@ public class SupportTicketService {
                 "support_ticket"
         );
 
-        // 📡 SSE Real-time notification basato sui ruoli
+        // 📡 SSE Real-time notification usando nuovo sistema realtime
         Map<String, Object> eventData = Map.of(
-                "type", "new-ticket",
                 "ticketId", savedTicket.getId().toString(),
                 "email", savedTicket.getUserEmail(),
                 "subject", savedTicket.getSubject(),
                 "status", savedTicket.getStatus(),
-                "createdAt", savedTicket.getCreatedAt(),
-                "priority", savedTicket.getPriority(),
-                "timestamp", System.currentTimeMillis()
+                "createdAt", savedTicket.getCreatedAt().toString(),
+                "priority", savedTicket.getPriority()
         );
         
         // Notifica admin e super_admin (non support)
-        AdminSupportSseController.notifyNewTicket(eventData);
-        
+        com.funkard.realtime.AdminStreamController.broadcastEvent(
+            com.funkard.realtime.EventType.NEW_TICKET, 
+            eventData
+        );
 
         // 📡 Notifica SSE all'utente finale per conferma creazione
-        SupportSseController.notifyTicketCreated(
+        com.funkard.realtime.SupportStreamController.sendEventToUser(
             email,
-            savedTicket.getId().toString(),
-            subject
+            com.funkard.realtime.EventType.NEW_TICKET,
+            Map.of(
+                "ticketId", savedTicket.getId().toString(),
+                "subject", subject,
+                "status", savedTicket.getStatus()
+            )
         );
 
         return savedTicket;
@@ -74,6 +78,10 @@ public class SupportTicketService {
 
     public List<SupportTicket> findAll() {
         return repo.findAll();
+    }
+
+    public org.springframework.data.domain.Page<SupportTicket> findAll(org.springframework.data.domain.Pageable pageable) {
+        return repo.findAll(pageable);
     }
 
     public long countAll() {
@@ -104,17 +112,30 @@ public class SupportTicketService {
         
         SupportTicket savedTicket = repo.save(ticket);
         
-        // 🔔 Notifica WebSocket: aggiornamento ticket
-        try {
-            messagingTemplate.convertAndSend("/topic/support/" + id + "/status", Map.of(
-                "ticketId", id,
-                "status", status,
-                "updatedAt", LocalDateTime.now().toString(),
-                "message", "Ticket aggiornato: " + status
-            ));
-            System.out.println("✅ WebSocket: Status aggiornato per ticket " + id);
-        } catch (Exception e) {
-            System.err.println("❌ Errore WebSocket status update: " + e.getMessage());
+        // 📡 Notifica SSE usando nuovo sistema realtime
+        Map<String, Object> statusData = Map.of(
+            "ticketId", id.toString(),
+            "email", savedTicket.getUserEmail(),
+            "oldStatus", ticket.getStatus(),
+            "newStatus", status
+        );
+        
+        // Notifica admin
+        com.funkard.realtime.AdminStreamController.sendToRole("ADMIN", 
+            com.funkard.realtime.EventType.TICKET_STATUS, statusData);
+        com.funkard.realtime.AdminStreamController.sendToRole("SUPER_ADMIN", 
+            com.funkard.realtime.EventType.TICKET_STATUS, statusData);
+        
+        // Notifica utente
+        if (savedTicket.getUserEmail() != null) {
+            com.funkard.realtime.SupportStreamController.sendEventToUser(
+                savedTicket.getUserEmail(),
+                com.funkard.realtime.EventType.TICKET_STATUS,
+                Map.of(
+                    "ticketId", id.toString(),
+                    "status", status
+                )
+            );
         }
         
         return savedTicket;
@@ -193,26 +214,31 @@ public class SupportTicketService {
         // 📡 Notifica SSE all'utente finale
         SupportTicket ticket = repo.findById(ticketId).orElse(null);
         
-        // 📡 Notifica SSE basata sui ruoli per nuovo messaggio
+        // 📡 Notifica SSE usando nuovo sistema realtime
         if (ticket != null) {
             Map<String, Object> messageData = Map.of(
-                "type", "new-message",
                 "ticketId", ticketId.toString(),
                 "email", ticket.getUserEmail(),
-                "messageId", savedMessage.getId(),
+                "messageId", savedMessage.getId().toString(),
                 "sender", sender,
-                "content", content.length() > 100 ? content.substring(0, 100) + "..." : content,
-                "timestamp", System.currentTimeMillis()
+                "content", content.length() > 100 ? content.substring(0, 100) + "..." : content
             );
-            AdminSupportSseController.notifyNewMessage(messageData);
+            // Notifica admin
+            com.funkard.realtime.AdminStreamController.sendToRole("ADMIN", 
+                com.funkard.realtime.EventType.NEW_REPLY, messageData);
+            com.funkard.realtime.AdminStreamController.sendToRole("SUPER_ADMIN", 
+                com.funkard.realtime.EventType.NEW_REPLY, messageData);
         }
+        // Notifica utente
         if (ticket != null && ticket.getUserEmail() != null) {
-            String messagePreview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
-            SupportSseController.notifyNewReply(
+            com.funkard.realtime.SupportStreamController.sendEventToUser(
                 ticket.getUserEmail(),
-                ticketId.toString(),
-                sender,
-                messagePreview
+                com.funkard.realtime.EventType.NEW_REPLY,
+                Map.of(
+                    "ticketId", ticketId.toString(),
+                    "sender", sender,
+                    "messagePreview", content.length() > 60 ? content.substring(0, 60) + "..." : content
+                )
             );
         }
 
@@ -226,22 +252,24 @@ public class SupportTicketService {
         // ✅ Notifica all'utente che è stato risolto
         broadcastTicketUpdate(ticket, "RESOLVED", true);
         
-        // 📡 Notifica SSE basata sui ruoli per ticket risolto
+        // 📡 Notifica SSE usando nuovo sistema realtime
         Map<String, Object> resolvedData = Map.of(
-            "type", "ticket-resolved",
             "ticketId", ticket.getId().toString(),
             "email", ticket.getUserEmail(),
-            "status", "resolved",
-            "timestamp", System.currentTimeMillis()
+            "status", "resolved"
         );
-        AdminSupportSseController.notifyTicketResolved(resolvedData);
+        com.funkard.realtime.AdminStreamController.sendToRole("SUPER_ADMIN", 
+            com.funkard.realtime.EventType.TICKET_RESOLVED, resolvedData);
 
         // 📡 Notifica SSE all'utente finale
         if (ticket.getUserEmail() != null) {
-            SupportSseController.notifyTicketResolved(
+            com.funkard.realtime.SupportStreamController.sendEventToUser(
                 ticket.getUserEmail(),
-                ticket.getId().toString(),
-                "resolved"
+                com.funkard.realtime.EventType.TICKET_RESOLVED,
+                Map.of(
+                    "ticketId", ticket.getId().toString(),
+                    "status", "resolved"
+                )
             );
         }
         
@@ -255,21 +283,21 @@ public class SupportTicketService {
         // 🔒 Solo admin: non inviamo broadcast all'utente
         broadcastTicketUpdate(ticket, "CLOSED", false);
         
-        // 📡 Notifica SSE basata sui ruoli per ticket chiuso
+        // 📡 Notifica SSE usando nuovo sistema realtime
         Map<String, Object> closedData = Map.of(
-            "type", "ticket-closed",
             "ticketId", ticket.getId().toString(),
             "email", ticket.getUserEmail(),
-            "status", "closed",
-            "timestamp", System.currentTimeMillis()
+            "status", "closed"
         );
-        AdminSupportSseController.notifyTicketClosed(closedData);
+        com.funkard.realtime.AdminStreamController.sendToRole("SUPER_ADMIN", 
+            com.funkard.realtime.EventType.TICKET_CLOSED, closedData);
 
         // 📡 Notifica SSE all'utente finale
         if (ticket.getUserEmail() != null) {
-            SupportSseController.notifyTicketClosed(
+            com.funkard.realtime.SupportStreamController.sendEventToUser(
                 ticket.getUserEmail(),
-                ticket.getId().toString()
+                com.funkard.realtime.EventType.TICKET_CLOSED,
+                Map.of("ticketId", ticket.getId().toString())
             );
         }
         
@@ -291,6 +319,17 @@ public class SupportTicketService {
 
         // 🔄 Notifica admin che il ticket è stato riaperto
         broadcastTicketUpdate(savedTicket, "REOPENED", false);
+        
+        // 📡 Notifica SSE usando nuovo sistema realtime
+        Map<String, Object> reopenedData = Map.of(
+            "ticketId", savedTicket.getId().toString(),
+            "email", savedTicket.getUserEmail(),
+            "status", "open"
+        );
+        com.funkard.realtime.AdminStreamController.sendToRole("ADMIN", 
+            com.funkard.realtime.EventType.TICKET_STATUS, reopenedData);
+        com.funkard.realtime.AdminStreamController.sendToRole("SUPER_ADMIN", 
+            com.funkard.realtime.EventType.TICKET_STATUS, reopenedData);
 
         return savedTicket;
     }
@@ -334,21 +373,24 @@ public class SupportTicketService {
         // 🔔 Broadcast real-time
         broadcastTicketUpdate(savedTicket, "ASSIGNED", false);
 
-        // 📡 SSE Real-time notification basata sui ruoli per assegnazione
+        // 📡 SSE Real-time notification usando nuovo sistema realtime
         Map<String, Object> eventData = Map.of(
-                "type", "ticket-assigned",
                 "ticketId", savedTicket.getId().toString(),
                 "email", savedTicket.getUserEmail(),
                 "subject", savedTicket.getSubject(),
                 "assignedTo", supportEmail,
                 "status", savedTicket.getStatus(),
-                "locked", savedTicket.isLocked(),
-                "timestamp", System.currentTimeMillis()
+                "locked", savedTicket.isLocked()
         );
         
         // Notifica al support specifico e super_admin
-        AdminSupportSseController.notifyTicketAssigned(supportEmail, eventData);
-        
+        com.funkard.realtime.AdminStreamController.sendToUser(
+            supportEmail, "SUPPORT", 
+            com.funkard.realtime.EventType.TICKET_ASSIGNED, 
+            eventData
+        );
+        com.funkard.realtime.AdminStreamController.sendToRole("SUPER_ADMIN", 
+            com.funkard.realtime.EventType.TICKET_ASSIGNED, eventData);
 
         return savedTicket;
     }
@@ -379,9 +421,21 @@ public class SupportTicketService {
     // 📋 Lista ticket assegnati a un support
     public List<SupportTicket> getTicketsAssignedTo(String supportEmail) {
         return repo.findAll().stream()
-                .filter(t -> supportEmail.equals(t.getAssignedTo()))
+                .filter(t -> t.getAssignedToUser() != null && 
+                            t.getAssignedToUser().getEmail().equalsIgnoreCase(supportEmail))
                 .sorted(Comparator.comparing(SupportTicket::getCreatedAt).reversed())
                 .toList();
+    }
+
+    // 📋 Lista ticket assegnati a un support (paginata)
+    public org.springframework.data.domain.Page<SupportTicket> findByAssignedTo(String supportEmail, org.springframework.data.domain.Pageable pageable) {
+        return repo.findAll(pageable).map(ticket -> {
+            if (ticket.getAssignedToUser() != null && 
+                ticket.getAssignedToUser().getEmail().equalsIgnoreCase(supportEmail)) {
+                return ticket;
+            }
+            return null;
+        }).filter(java.util.Objects::nonNull);
     }
 
     // 📊 Conta ticket assegnati
