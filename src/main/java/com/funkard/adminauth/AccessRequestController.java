@@ -92,13 +92,15 @@ public class AccessRequestController {
         }
 
         List<Map<String, Object>> requestsList = pending.stream()
-                .map(r -> Map.of(
-                    "id", r.getId().toString(),
-                    "email", r.getEmail(),
-                    "role", r.getRole(),
-                    "status", r.getStatus(),
-                    "createdAt", r.getCreatedAt()
-                ))
+                .map(r -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", r.getId().toString());
+                    map.put("email", r.getEmail());
+                    map.put("role", r.getRole());
+                    map.put("status", r.getStatus());
+                    map.put("createdAt", r.getCreatedAt());
+                    return map;
+                })
                 .toList();
 
         return ResponseEntity.ok(Map.of(

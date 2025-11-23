@@ -55,8 +55,8 @@ public class JwtFilter extends OncePerRequestFilter {
             if (user != null && user.getVerified()) {
                 // 🗑️ Blocca accesso se account è in cancellazione
                 if (Boolean.TRUE.equals(user.getDeletionPending())) {
-                    logger.warn("❌ Tentativo di accesso da account in cancellazione: {} ({})", 
-                        user.getEmail(), request.getRequestURI());
+                    logger.warn("❌ Tentativo di accesso da account in cancellazione: " + 
+                        user.getEmail() + " (" + request.getRequestURI() + ")");
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\":\"Account in cancellazione. Accesso negato.\"}");
@@ -92,8 +92,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
                 
                 // 📝 Log autenticazione
-                logger.info("✅ Authenticated request by {} ({}) to {}", 
-                    user.getEmail(), role, request.getRequestURI());
+                logger.info("✅ Authenticated request by " + user.getEmail() + 
+                    " (" + role + ") to " + request.getRequestURI());
             }
         }
 

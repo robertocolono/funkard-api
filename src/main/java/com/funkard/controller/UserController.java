@@ -350,7 +350,8 @@ public class UserController {
     public ResponseEntity<CookiePreferencesDTO> savePreferences(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @Valid @RequestBody CookiePreferencesDTO dto,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest request) {
         
         User user = getUserFromRequest(userId, authentication);
         if (user == null) {
@@ -362,7 +363,11 @@ public class UserController {
         log.info("Salvataggio preferenze per utente: {}", user.getId());
         
         try {
-            preferencesService.saveCookiePreferences(user, dto);
+            // Estrai IP e UserAgent dalla request
+            String ipAddress = getClientIpAddress(request);
+            String userAgent = request.getHeader("User-Agent");
+            
+            preferencesService.saveCookiePreferences(user, dto, ipAddress, userAgent);
             CookiePreferencesDTO updated = preferencesService.getPreferencesDTO(user);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
@@ -401,7 +406,7 @@ public class UserController {
                 // Validazione lingua contro whitelist
                 if (!LanguageWhitelist.isValid(dto.getLanguage())) {
                     return ResponseEntity.badRequest()
-                            .body(Map.of("error", "Lingua non supportata: " + dto.getLanguage()));
+                            .body(Map.<String, Object>of("error", "Lingua non supportata: " + dto.getLanguage()));
                 }
                 // Valida formato lingua (es. en, it, es, de, fr)
                 if (dto.getLanguage().length() <= 5) {

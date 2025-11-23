@@ -126,7 +126,9 @@ public class UserDeletionService {
      * 🗑️ Cancella UserAddresses
      */
     private void deleteUserAddresses(Long userId) {
-        List<UserAddress> addresses = userAddressRepository.findByUserId(userId);
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return;
+        List<UserAddress> addresses = userAddressRepository.findByUserOrderByCreatedAtDesc(user);
         if (!addresses.isEmpty()) {
             userAddressRepository.deleteAll(addresses);
             log.debug("✅ Cancellati {} UserAddresses per utente {}", addresses.size(), userId);

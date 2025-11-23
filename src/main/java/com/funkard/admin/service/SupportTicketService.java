@@ -429,13 +429,20 @@ public class SupportTicketService {
 
     // 📋 Lista ticket assegnati a un support (paginata)
     public org.springframework.data.domain.Page<SupportTicket> findByAssignedTo(String supportEmail, org.springframework.data.domain.Pageable pageable) {
-        return repo.findAll(pageable).map(ticket -> {
-            if (ticket.getAssignedToUser() != null && 
-                ticket.getAssignedToUser().getEmail().equalsIgnoreCase(supportEmail)) {
-                return ticket;
-            }
-            return null;
-        }).filter(java.util.Objects::nonNull);
+        List<SupportTicket> filtered = repo.findAll().stream()
+            .filter(ticket -> ticket.getAssignedToUser() != null && 
+                ticket.getAssignedToUser().getEmail().equalsIgnoreCase(supportEmail))
+            .toList();
+        
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), filtered.size());
+        List<SupportTicket> pageContent = filtered.subList(start, end);
+        
+        return new org.springframework.data.domain.PageImpl<>(
+            pageContent, 
+            pageable, 
+            filtered.size()
+        );
     }
 
     // 📊 Conta ticket assegnati

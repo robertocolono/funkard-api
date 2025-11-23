@@ -53,7 +53,8 @@ public class AdminSupportController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> getStats() {
         log.info("📈 Richiesta statistiche supporto");
-        return ResponseEntity.ok(supportTicketService.getStatsLast30Days());
+        // TODO: Implementare metodo getStatsLast30Days in SupportTicketService
+        return ResponseEntity.ok(Map.of("message", "Statistiche non ancora implementate"));
     }
 
     // 💬 Rispondi a un ticket specifico

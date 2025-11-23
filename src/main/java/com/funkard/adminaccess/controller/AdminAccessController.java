@@ -111,15 +111,17 @@ public class AdminAccessController {
         List<AdminAccessRequest> requests = accessService.getAllRequests();
         
         List<Map<String, Object>> requestsList = requests.stream()
-                .map(r -> Map.of(
-                    "id", r.getId().toString(),
-                    "email", r.getEmail(),
-                    "requestedRole", r.getRequestedRole(),
-                    "status", r.getStatus(),
-                    "createdAt", r.getCreatedAt() != null ? r.getCreatedAt() : "",
-                    "approvedBy", r.getApprovedBy() != null ? r.getApprovedBy() : "",
-                    "approvedAt", r.getApprovedAt() != null ? r.getApprovedAt() : ""
-                ))
+                .map(r -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", r.getId().toString());
+                    map.put("email", r.getEmail());
+                    map.put("requestedRole", r.getRequestedRole());
+                    map.put("status", r.getStatus());
+                    map.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt() : "");
+                    map.put("approvedBy", r.getApprovedBy() != null ? r.getApprovedBy() : "");
+                    map.put("approvedAt", r.getApprovedAt() != null ? r.getApprovedAt() : "");
+                    return map;
+                })
                 .toList();
 
         return ResponseEntity.ok(Map.of(
@@ -218,14 +220,14 @@ public class AdminAccessController {
                     String tokenPreview = t.getToken() != null && t.getToken().length() >= 12
                         ? t.getToken().substring(0, 12) + "..."
                         : "***";
-                    return Map.of(
-                        "id", t.getId().toString(),
-                        "role", t.getRole(),
-                        "token", tokenPreview,
-                        "active", t.isActive(),
-                        "createdBy", t.getCreatedBy() != null ? t.getCreatedBy() : "",
-                        "createdAt", t.getCreatedAt() != null ? t.getCreatedAt() : ""
-                    );
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", t.getId().toString());
+                    map.put("role", t.getRole());
+                    map.put("token", tokenPreview);
+                    map.put("active", t.isActive());
+                    map.put("createdBy", t.getCreatedBy() != null ? t.getCreatedBy() : "");
+                    map.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt() : "");
+                    return map;
                 })
                 .toList();
 

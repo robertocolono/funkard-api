@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -416,13 +417,12 @@ public class AdminAuthController {
         }
 
         try {
-            AdminToken created = tokenService.createToken(token, role, description, requester);
+            String tokenValue = tokenService.createToken(role, requester.getId());
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", Map.of(
-                    "id", created.getId().toString(),
-                    "role", created.getRole(),
-                    "description", created.getDescription() != null ? created.getDescription() : ""
+                    "token", tokenValue,
+                    "role", role
                 )
             ));
         } catch (IllegalArgumentException e) {
@@ -453,13 +453,12 @@ public class AdminAuthController {
                     .body(Map.of("error", "Solo Root Super Admin può visualizzare token"));
         }
 
-        List<AdminToken> tokens = tokenService.listAllTokens();
+        List<AdminToken> tokens = tokenService.getAllActiveTokens();
         List<Map<String, Object>> tokensList = tokens.stream()
                 .map(t -> Map.of(
                     "id", t.getId().toString(),
                     "role", t.getRole(),
                     "active", t.isActive(),
-                    "description", t.getDescription() != null ? t.getDescription() : "",
                     "createdAt", t.getCreatedAt()
                 ))
                 .toList();
@@ -491,7 +490,7 @@ public class AdminAuthController {
         }
 
         try {
-            tokenService.disableToken(id, requester);
+            tokenService.deactivateToken(id);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Token disabilitato con successo"
@@ -533,13 +532,11 @@ public class AdminAuthController {
         }
 
         try {
-            AdminToken updated = tokenService.regenerateToken(id, newTokenValue, requester);
+            String newToken = tokenService.regenerateToken(id, requester.getId());
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", Map.of(
-                    "id", updated.getId().toString(),
-                    "role", updated.getRole(),
-                    "description", updated.getDescription() != null ? updated.getDescription() : ""
+                    "token", newToken
                 )
             ));
         } catch (IllegalArgumentException e) {
