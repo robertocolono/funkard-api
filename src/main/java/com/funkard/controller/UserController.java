@@ -405,8 +405,9 @@ public class UserController {
             if (dto.getLanguage() != null && !dto.getLanguage().trim().isEmpty()) {
                 // Validazione lingua contro whitelist
                 if (!LanguageWhitelist.isValid(dto.getLanguage())) {
-                    return ResponseEntity.badRequest()
-                            .body(Map.<String, Object>of("error", "Lingua non supportata: " + dto.getLanguage()));
+                    Map<String, Object> errorMap = new java.util.HashMap<>();
+                    errorMap.put("error", "Lingua non supportata: " + dto.getLanguage());
+                    return ResponseEntity.badRequest().body(errorMap);
                 }
                 // Valida formato lingua (es. en, it, es, de, fr)
                 if (dto.getLanguage().length() <= 5) {

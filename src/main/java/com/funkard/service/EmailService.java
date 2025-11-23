@@ -144,7 +144,12 @@ public class EmailService {
             throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom(fromEmail, fromName);
+        try {
+            helper.setFrom(fromEmail, fromName);
+        } catch (java.io.UnsupportedEncodingException e) {
+            // Fallback: usa solo email senza nome
+            helper.setFrom(fromEmail);
+        }
         helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(bodyHtml, isHtml);

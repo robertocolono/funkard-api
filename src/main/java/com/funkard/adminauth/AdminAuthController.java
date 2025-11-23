@@ -455,12 +455,14 @@ public class AdminAuthController {
 
         List<AdminToken> tokens = tokenService.getAllActiveTokens();
         List<Map<String, Object>> tokensList = tokens.stream()
-                .map(t -> Map.of(
-                    "id", t.getId().toString(),
-                    "role", t.getRole(),
-                    "active", t.isActive(),
-                    "createdAt", t.getCreatedAt()
-                ))
+                .map(t -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("id", t.getId().toString());
+                    map.put("role", t.getRole());
+                    map.put("active", t.isActive());
+                    map.put("createdAt", t.getCreatedAt());
+                    return map;
+                })
                 .toList();
 
         return ResponseEntity.ok(Map.of(
