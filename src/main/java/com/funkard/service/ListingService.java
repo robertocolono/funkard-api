@@ -1,22 +1,89 @@
 package com.funkard.service;
 
+import com.funkard.dto.CreateListingRequest;
 import com.funkard.model.Listing;
+import com.funkard.model.PendingValue;
 import com.funkard.repository.ListingRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class ListingService {
     private final ListingRepository repo;
-
-    public ListingService(ListingRepository repo) {
-        this.repo = repo;
-    }
+    private final PendingValueService pendingValueService;
 
     public List<Listing> getAll() {
         return repo.findAll();
     }
 
+    /**
+     * 📝 Crea listing con gestione valori personalizzati "Altro"
+     */
+    @Transactional
+    public Listing create(Listing listing, CreateListingRequest request, Long userId) {
+        // Gestisci valori personalizzati "Altro"
+        if (request != null) {
+            // Se TCG è "Altro" e customTcg è fornito, salva proposta
+            if ("Altro".equalsIgnoreCase(request.getTcg()) && 
+                request.getCustomTcg() != null && !request.getCustomTcg().trim().isEmpty()) {
+                try {
+                    pendingValueService.submitPendingValue(
+                        PendingValue.ValueType.TCG,
+                        request.getCustomTcg(),
+                        userId
+                    );
+                    log.info("✅ Proposta TCG personalizzato salvata: {}", request.getCustomTcg());
+                } catch (Exception e) {
+                    log.warn("⚠️ Errore durante salvataggio proposta TCG: {}", e.getMessage());
+                    // Non bloccare la creazione listing se la proposta fallisce
+                }
+            }
+            
+            // Se Lingua è "Altro" e customLanguage è fornito, salva proposta
+            if ("Altro".equalsIgnoreCase(request.getLanguage()) && 
+                request.getCustomLanguage() != null && !request.getCustomLanguage().trim().isEmpty()) {
+                try {
+                    pendingValueService.submitPendingValue(
+                        PendingValue.ValueType.LANGUAGE,
+                        request.getCustomLanguage(),
+                        userId
+                    );
+                    log.info("✅ Proposta Lingua personalizzata salvata: {}", request.getCustomLanguage());
+                } catch (Exception e) {
+                    log.warn("⚠️ Errore durante salvataggio proposta Lingua: {}", e.getMessage());
+                    // Non bloccare la creazione listing se la proposta fallisce
+                }
+            }
+            
+            // Se Franchise è "Altro" e customFranchise è fornito, salva proposta
+            if ("Altro".equalsIgnoreCase(request.getFranchise()) && 
+                request.getCustomFranchise() != null && !request.getCustomFranchise().trim().isEmpty()) {
+                try {
+                    pendingValueService.submitPendingValue(
+                        PendingValue.ValueType.FRANCHISE,
+                        request.getCustomFranchise(),
+                        userId
+                    );
+                    log.info("✅ Proposta Franchise personalizzato salvata: {}", request.getCustomFranchise());
+                } catch (Exception e) {
+                    log.warn("⚠️ Errore durante salvataggio proposta Franchise: {}", e.getMessage());
+                    // Non bloccare la creazione listing se la proposta fallisce
+                }
+            }
+        }
+        
+        // Salva listing
+        return repo.save(listing);
+    }
+
+    /**
+     * 📝 Crea listing (metodo legacy per retrocompatibilità)
+     */
     public Listing create(Listing listing) {
         return repo.save(listing);
     }

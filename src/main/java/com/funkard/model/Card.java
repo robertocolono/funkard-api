@@ -23,6 +23,16 @@ public class Card {
     // Campi opzionali per la gestione della collezione personale
     private String condition; // es: MINT, NEAR_MINT, EXCELLENT, GOOD, FAIR, POOR
     private String source;    // es: "collection", "market", ecc.
+    
+    // 🌍 Campi categoria e franchise
+    @Column(length = 100)
+    private String category; // es: "TCG", "Anime", "TCG / Anime"
+    
+    @Column(length = 100)
+    private String franchise; // es: "Pokémon", "Yu-Gi-Oh!", "Magic: The Gathering"
+    
+    @Column(length = 50)
+    private String language; // es: "Italiano", "Inglese", "Giapponese"
 
     @OneToMany(mappedBy = "card")
     private List<Listing> listings;

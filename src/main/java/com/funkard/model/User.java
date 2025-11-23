@@ -1,6 +1,7 @@
 package com.funkard.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID; // unused but requested
@@ -30,7 +31,15 @@ public class User {
     private String telefono;
     private String metodoPagamento;
 
-    private Boolean accettaTermini;
+    private Boolean accettaTermini; // ⚠️ Legacy - mantenuto per retrocompatibilità
+    
+    // 🔒 GDPR Compliance: Timestamp accettazione Termini e Privacy Policy
+    @Column(name = "terms_accepted_at")
+    private LocalDateTime termsAcceptedAt;
+    
+    @Column(name = "privacy_accepted_at")
+    private LocalDateTime privacyAcceptedAt;
+    
     private Boolean verified = false;
     private Boolean flagged = false;
 
@@ -41,14 +50,41 @@ public class User {
     private LocalDateTime createdAt = LocalDateTime.now();
     
     // Campi profilo aggiuntivi per compatibilità con UserService
-    private String language;
+    @Column(name = "language", length = 5)
+    private String language = "en";
+    
     private String theme;
     private LocalDateTime updatedAt;
     private LocalDateTime lastLoginAt;
 
-    // 🔹 Nuovo campo valuta preferita
-    @Column(nullable = false, length = 3)
+    // 🔹 Campo valuta preferita
+    @Column(name = "preferred_currency", nullable = false, length = 3)
     private String preferredCurrency = "EUR";
+    
+    // 🗑️ GDPR Compliance: Flag cancellazione account in corso
+    @Column(name = "deletion_pending", nullable = false)
+    private Boolean deletionPending = false;
+    
+    /**
+     * 📅 Data richiesta cancellazione (per tracciabilità)
+     */
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+    
+    /**
+     * 🌍 Descrizione profilo venditore originale (testo scritto dall'utente)
+     * Salvata nella lingua originale per traduzione on-demand
+     * Massimo 500 caratteri
+     */
+    @Column(name = "description_original", columnDefinition = "TEXT")
+    @Size(max = 500, message = "La bio del venditore non può superare 500 caratteri")
+    private String descriptionOriginal;
+    
+    /**
+     * 🌍 Lingua originale della descrizione profilo (codice ISO 639-1, es. "it", "en", "es")
+     */
+    @Column(name = "description_language", length = 5)
+    private String descriptionLanguage;
 
     // Metodi di compatibilità per DTO/Service
     public String getName() { return this.nome; }

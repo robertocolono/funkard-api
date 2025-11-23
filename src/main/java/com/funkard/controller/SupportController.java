@@ -16,7 +16,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/support")
-@CrossOrigin(origins = {"https://funkard.vercel.app", "https://funkardnew.vercel.app", "http://localhost:3000"})
+@CrossOrigin(origins = {"https://funkard.com", "https://www.funkard.com", "http://localhost:3000", "http://localhost:3002"})
 public class SupportController {
 
     @Autowired

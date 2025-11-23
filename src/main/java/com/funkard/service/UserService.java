@@ -118,6 +118,8 @@ public class UserService {
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setLastLoginAt(user.getLastLoginAt());
+        dto.setDescriptionOriginal(user.getDescriptionOriginal());
+        dto.setDescriptionLanguage(user.getDescriptionLanguage());
         
         return dto;
     }
@@ -137,6 +139,11 @@ public class UserService {
         if (dto.getPreferredCurrency() != null && !isValidCurrency(dto.getPreferredCurrency())) {
             throw new IllegalArgumentException("Valuta non supportata: " + dto.getPreferredCurrency());
         }
+        
+        // Validazione bio venditore (max 500 caratteri)
+        if (dto.getDescriptionOriginal() != null && dto.getDescriptionOriginal().length() > 500) {
+            throw new IllegalArgumentException("La bio del venditore non può superare 500 caratteri.");
+        }
 
         // Aggiorna solo i campi forniti
         if (dto.getName() != null) {
@@ -153,6 +160,12 @@ public class UserService {
         }
         if (dto.getAvatarUrl() != null) {
             user.setAvatarUrl(dto.getAvatarUrl());
+        }
+        if (dto.getDescriptionOriginal() != null) {
+            user.setDescriptionOriginal(dto.getDescriptionOriginal());
+        }
+        if (dto.getDescriptionLanguage() != null) {
+            user.setDescriptionLanguage(dto.getDescriptionLanguage());
         }
 
         // Aggiorna timestamp
