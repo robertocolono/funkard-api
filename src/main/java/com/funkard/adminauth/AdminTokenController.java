@@ -1,5 +1,7 @@
 package com.funkard.adminauth;
 
+import com.funkard.adminaccess.model.AdminAccessToken;
+import com.funkard.adminaccess.repository.AdminAccessTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
