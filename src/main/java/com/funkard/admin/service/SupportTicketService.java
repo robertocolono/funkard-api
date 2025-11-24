@@ -6,7 +6,6 @@ import com.funkard.admin.model.SupportMessage;
 import com.funkard.admin.model.SupportTicket;
 import com.funkard.admin.repository.SupportMessageRepository;
 import com.funkard.admin.repository.SupportTicketRepository;
-import com.funkard.controller.AdminSupportSseController;
 import com.funkard.controller.SupportSseController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
