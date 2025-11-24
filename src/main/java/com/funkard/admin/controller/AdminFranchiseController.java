@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * e eliminare franchise dal catalogo.
  */
 @RestController
-@RequestMapping("/api/admin/franchises")
+@RequestMapping("/api/admin/franchises/catalog")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = {

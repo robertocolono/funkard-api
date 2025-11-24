@@ -40,8 +40,8 @@ public class AdminUser {
     @Column(name = "is_root", nullable = false)
     private boolean isRoot = false;
 
-    @Column(nullable = false)
-    private boolean pending = false;
+    @Column(nullable = true)
+    private Boolean pending = false;
 
     @Column(name = "requested_at")
     private LocalDateTime requestedAt;
