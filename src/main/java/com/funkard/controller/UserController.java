@@ -386,7 +386,7 @@ public class UserController {
      * - X-User-Id header (legacy)
      */
     @PatchMapping("/preferences")
-    public ResponseEntity<UserPreferencesDTO> updatePreferences(
+    public ResponseEntity<?> updatePreferences(
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @Valid @RequestBody UserPreferencesDTO dto,
             Authentication authentication) {
