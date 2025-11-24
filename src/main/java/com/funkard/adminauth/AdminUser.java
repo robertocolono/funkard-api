@@ -151,11 +151,11 @@ public class AdminUser {
         isRoot = root;
     }
 
-    public boolean isPending() {
+    public Boolean isPending() {
         return pending;
     }
 
-    public void setPending(boolean pending) {
+    public void setPending(Boolean pending) {
         this.pending = pending;
     }
 
