@@ -31,10 +31,10 @@ public class EmailConfig {
     @Value("${MAIL_PASSWORD:}")
     private String mailPassword;
     
-    @Value("${MAIL_FALLBACK_HOST:${MAIL_HOST:smtp.register.it}}")
+    @Value("${MAIL_FALLBACK_HOST:smtp.register.it}")
     private String mailFallbackHost;
     
-    @Value("${MAIL_FALLBACK_PORT:${MAIL_PORT:587}}")
+    @Value("${MAIL_FALLBACK_PORT:587}")
     private Integer mailFallbackPort;
     
     @Value("${MAIL_FALLBACK_USERNAME:support@funkard.com}")
