@@ -45,6 +45,12 @@ public class CurrencyRateUpdateController {
      * @param authHeader Header Authorization con Bearer token
      * @return ResponseEntity con stato aggiornamento e dettagli
      */
+    @PostMapping("/refresh-rates/test")
+    public ResponseEntity<?> testDebug() {
+        System.out.println("🔥 DEBUG: RICEVUTO CHIAMATA /refresh-rates/test");
+        return ResponseEntity.ok(Map.of("success", true, "message", "TEST OK"));
+    }
+    
     @PostMapping("/refresh-rates")
     public ResponseEntity<?> refreshRates(@RequestHeader("Authorization") String authHeader) {
         // Verifica autenticazione Bearer token
