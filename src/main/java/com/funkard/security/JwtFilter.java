@@ -37,6 +37,12 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
+        // Esclusione per endpoint currency refresh (autenticato con Bearer token dedicato)
+        if ("/api/currency/refresh-rates".equals(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String email = null;
