@@ -37,8 +37,11 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
-        // Esclusione per endpoint currency refresh (autenticato con Bearer token dedicato)
-        if ("/api/currency/refresh-rates".equals(request.getRequestURI())) {
+        logger.warn("🔥 DEBUG REQUEST PATH = '" + request.getRequestURI() + "'");
+        
+        String path = request.getRequestURI();
+        if (path != null && path.contains("/currency/refresh-rates")) {
+            logger.warn("🔥 BYPASS JWT per endpoint currency: " + path);
             filterChain.doFilter(request, response);
             return;
         }
