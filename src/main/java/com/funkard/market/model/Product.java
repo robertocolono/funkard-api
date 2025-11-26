@@ -21,6 +21,12 @@ public class Product {
     
     private Double price;
     
+    /**
+     * 💱 Valuta del prezzo prodotto (codice ISO 4217, es. EUR, USD, GBP)
+     */
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "EUR";
+    
     private Double estimatedValue;
     
     @Column(name = "user_id")

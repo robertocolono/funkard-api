@@ -9,6 +9,18 @@ public class ListingDTO {
     private String title;
     private String description;
     private Double price;
+    private String currency;
+    
+    /**
+     * 💱 Prezzo convertito nella valuta preferita dell'utente
+     */
+    private Double convertedPrice;
+    
+    /**
+     * 💱 Valuta del prezzo convertito
+     */
+    private String convertedCurrency;
+    
     private String status;
     private LocalDateTime createdAt;
     private String sellerId;

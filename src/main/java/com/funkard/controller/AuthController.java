@@ -57,12 +57,23 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email già registrata");
         }
 
+        // Validazione valuta se fornita
+        String preferredCurrency = "USD"; // Default
+        if (request.getPreferredCurrency() != null && !request.getPreferredCurrency().trim().isEmpty()) {
+            if (!com.funkard.config.SupportedCurrencies.isValid(request.getPreferredCurrency())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Valuta non supportata: " + request.getPreferredCurrency() + 
+                              ". Valute supportate: EUR, USD, GBP, JPY, BRL, CAD, AUD");
+            }
+            preferredCurrency = request.getPreferredCurrency().toUpperCase();
+        }
+        
         // Crea nuovo utente con preferredCurrency, language e GDPR compliance
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setUsername(request.getUsername());
-        user.setPreferredCurrency(request.getPreferredCurrency() != null ? request.getPreferredCurrency() : "EUR");
+        user.setPreferredCurrency(preferredCurrency);
         user.setLanguage(request.getLanguage() != null ? request.getLanguage() : "en");
         user.setVerified(true);
         user.setRole("USER");
@@ -80,7 +91,7 @@ public class AuthController {
         LoginResponse response = new LoginResponse(
             token,
             savedUser.getLanguage() != null ? savedUser.getLanguage() : "en",
-            savedUser.getPreferredCurrency() != null ? savedUser.getPreferredCurrency() : "EUR"
+            savedUser.getPreferredCurrency() != null ? savedUser.getPreferredCurrency() : "USD"
         );
         return ResponseEntity.ok(response);
     }
@@ -109,7 +120,7 @@ public class AuthController {
         LoginResponse response = new LoginResponse(
             token,
             user.getLanguage() != null ? user.getLanguage() : "en",
-            user.getPreferredCurrency() != null ? user.getPreferredCurrency() : "EUR"
+            user.getPreferredCurrency() != null ? user.getPreferredCurrency() : "USD"
         );
         return ResponseEntity.ok(response);
     }

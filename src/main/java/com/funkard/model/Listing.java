@@ -14,6 +14,13 @@ public class Listing {
     private String title;
     private String description;
     private BigDecimal price;
+    
+    /**
+     * 💱 Valuta del prezzo listing (codice ISO 4217, es. EUR, USD, GBP)
+     */
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "EUR";
+    
     private String condition;
     private String seller;
 
@@ -42,4 +49,7 @@ public class Listing {
 
     public Card getCard() { return card; }
     public void setCard(Card card) { this.card = card; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
 }

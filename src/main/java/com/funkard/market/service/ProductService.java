@@ -32,6 +32,18 @@ public class ProductService {
     @Transactional
     public Product createProduct(Product p) {
         try {
+            // 💱 Valida e imposta currency (default USD se non fornita)
+            if (p.getCurrency() == null || p.getCurrency().trim().isEmpty()) {
+                p.setCurrency("USD");
+            } else {
+                String currency = p.getCurrency().trim().toUpperCase();
+                if (!com.funkard.config.SupportedCurrencies.isValid(currency)) {
+                    throw new IllegalArgumentException("Valuta non supportata: " + currency + 
+                        ". Valute supportate: EUR, USD, GBP, JPY, BRL, CAD, AUD");
+                }
+                p.setCurrency(currency);
+            }
+            
             // 🌍 Genera automaticamente nameEn se non fornito
             if (p.getNameEn() == null || p.getNameEn().trim().isEmpty()) {
                 String generatedNameEn = generateGlobalEnglishName(p);

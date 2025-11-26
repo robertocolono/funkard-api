@@ -421,24 +421,19 @@ public class UserController {
             if (dto.getPreferredCurrency() != null && !dto.getPreferredCurrency().trim().isEmpty()) {
                 // Valida formato valuta (es. EUR, USD, GBP)
                 if (dto.getPreferredCurrency().length() == 3) {
-                    // Verifica valuta supportata
-                    String[] supportedCurrencies = {"EUR", "USD", "GBP", "JPY", "CNY", "CAD", "AUD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "HRK", "RUB", "TRY", "BRL", "MXN", "ZAR", "INR", "KRW", "SGD", "HKD", "NZD"};
-                    boolean isValid = false;
-                    for (String currency : supportedCurrencies) {
-                        if (currency.equalsIgnoreCase(dto.getPreferredCurrency())) {
-                            isValid = true;
-                            break;
-                        }
-                    }
-                    
-                    if (isValid) {
+                    // Verifica valuta supportata usando whitelist centralizzata
+                    if (com.funkard.config.SupportedCurrencies.isValid(dto.getPreferredCurrency())) {
                         user.setPreferredCurrency(dto.getPreferredCurrency().toUpperCase());
                         updated = true;
                     } else {
-                        return ResponseEntity.badRequest().build();
+                        Map<String, Object> errorMap = new java.util.HashMap<>();
+                        errorMap.put("error", "Valuta non supportata: " + dto.getPreferredCurrency());
+                        return ResponseEntity.badRequest().body(errorMap);
                     }
                 } else {
-                    return ResponseEntity.badRequest().build();
+                    Map<String, Object> errorMap = new java.util.HashMap<>();
+                    errorMap.put("error", "Formato valuta non valido. Deve essere un codice di 3 caratteri (es. EUR, USD)");
+                    return ResponseEntity.badRequest().body(errorMap);
                 }
             }
             

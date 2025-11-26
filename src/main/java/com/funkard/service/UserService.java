@@ -136,6 +136,11 @@ public class UserService {
             throw new IllegalArgumentException("Il nome non può essere vuoto");
         }
         
+        // 💱 Fallback a USD se currency è null
+        if (dto.getPreferredCurrency() == null || dto.getPreferredCurrency().trim().isEmpty()) {
+            dto.setPreferredCurrency("USD");
+        }
+        
         if (dto.getPreferredCurrency() != null && !isValidCurrency(dto.getPreferredCurrency())) {
             throw new IllegalArgumentException("Valuta non supportata: " + dto.getPreferredCurrency());
         }
@@ -194,10 +199,10 @@ public class UserService {
 
     /**
      * ✅ Verifica se una valuta è supportata
+     * Usa la whitelist centralizzata SupportedCurrencies
      */
     private boolean isValidCurrency(String currency) {
-        return currency != null && 
-               (currency.equals("EUR") || currency.equals("USD") || currency.equals("GBP"));
+        return com.funkard.config.SupportedCurrencies.isValid(currency);
     }
 
     /**

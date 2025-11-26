@@ -21,6 +21,12 @@ public class CreateListingRequest {
     @NotNull(message = "Il prezzo è obbligatorio")
     private BigDecimal price;
     
+    /**
+     * 💱 Valuta del prezzo (opzionale, default: EUR)
+     * Codice ISO 4217 (es. EUR, USD, GBP, JPY, BRL, CAD, AUD)
+     */
+    private String currency;
+    
     private String condition;
     
     private String cardId;

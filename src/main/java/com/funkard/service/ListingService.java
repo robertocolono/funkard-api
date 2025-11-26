@@ -26,6 +26,18 @@ public class ListingService {
      */
     @Transactional
     public Listing create(Listing listing, CreateListingRequest request, Long userId) {
+        // 💱 Valida e imposta currency (default USD se non fornita)
+        if (request != null && request.getCurrency() != null && !request.getCurrency().trim().isEmpty()) {
+            String currency = request.getCurrency().trim().toUpperCase();
+            if (!com.funkard.config.SupportedCurrencies.isValid(currency)) {
+                throw new IllegalArgumentException("Valuta non supportata: " + currency + 
+                    ". Valute supportate: EUR, USD, GBP, JPY, BRL, CAD, AUD");
+            }
+            listing.setCurrency(currency);
+        } else {
+            listing.setCurrency("USD");
+        }
+        
         // Gestisci valori personalizzati "Altro"
         if (request != null) {
             // Se TCG è "Altro" e customTcg è fornito, salva proposta
@@ -85,6 +97,18 @@ public class ListingService {
      * 📝 Crea listing (metodo legacy per retrocompatibilità)
      */
     public Listing create(Listing listing) {
+        // 💱 Valida e imposta currency (default USD se non fornita)
+        if (listing.getCurrency() == null || listing.getCurrency().trim().isEmpty()) {
+            listing.setCurrency("USD");
+        } else {
+            String currency = listing.getCurrency().trim().toUpperCase();
+            if (!com.funkard.config.SupportedCurrencies.isValid(currency)) {
+                throw new IllegalArgumentException("Valuta non supportata: " + currency + 
+                    ". Valute supportate: EUR, USD, GBP, JPY, BRL, CAD, AUD");
+            }
+            listing.setCurrency(currency);
+        }
+        
         return repo.save(listing);
     }
 }

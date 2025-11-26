@@ -20,6 +20,13 @@ public class Transaction {
     private Listing listing;
 
     private Double price;
+    
+    /**
+     * 💱 Valuta della transazione (codice ISO 4217, es. EUR, USD, GBP)
+     */
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "EUR";
+    
     private String status = "PENDING";
     private LocalDateTime createdAt = LocalDateTime.now();
 }

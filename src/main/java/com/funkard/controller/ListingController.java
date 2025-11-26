@@ -1,6 +1,8 @@
 package com.funkard.controller;
 
+import com.funkard.currency.CurrencyConversionService;
 import com.funkard.dto.CreateListingRequest;
+import com.funkard.dto.ListingDTO;
 import com.funkard.model.Listing;
 import com.funkard.model.User;
 import com.funkard.repository.UserRepository;
@@ -15,8 +17,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 📝 Controller per gestione listing/vendite
@@ -37,11 +41,17 @@ public class ListingController {
 
     private final ListingService service;
     private final UserRepository userRepository;
+    private final CurrencyConversionService currencyConversionService;
 
     @GetMapping
     @Cacheable(value = "marketplace:filters", key = "'all'")
-    public List<Listing> getAllListings() {
-        return service.getAll();
+    public List<ListingDTO> getAllListings(Authentication authentication) {
+        List<Listing> listings = service.getAll();
+        String targetCurrency = getTargetCurrency(authentication);
+        
+        return listings.stream()
+            .map(listing -> toListingDTO(listing, targetCurrency))
+            .collect(Collectors.toList());
     }
 
     /**
@@ -81,7 +91,11 @@ public class ListingController {
             // Crea listing con gestione valori "Altro"
             Listing created = service.create(listing, request, userId);
             
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+            // Converte a DTO con conversione valuta
+            String targetCurrency = getTargetCurrency(authentication);
+            ListingDTO dto = toListingDTO(created, targetCurrency);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
             
         } catch (Exception e) {
             log.error("Errore durante creazione listing: {}", e.getMessage(), e);
@@ -110,5 +124,58 @@ public class ListingController {
             return user != null ? user.getId() : null;
         }
         return null;
+    }
+    
+    /**
+     * 🔍 Helper per ottenere valuta target (preferredCurrency dell'utente o "USD")
+     */
+    private String getTargetCurrency(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userRepository.findByEmail(userDetails.getUsername());
+            if (user != null && user.getPreferredCurrency() != null && !user.getPreferredCurrency().trim().isEmpty()) {
+                return user.getPreferredCurrency().toUpperCase();
+            }
+        }
+        return "USD"; // Default per utenti non autenticati
+    }
+    
+    /**
+     * 🔄 Converte Listing entity a ListingDTO con conversione valuta
+     */
+    private ListingDTO toListingDTO(Listing listing, String targetCurrency) {
+        ListingDTO dto = new ListingDTO();
+        dto.setId(listing.getId() != null ? listing.getId().toString() : null);
+        dto.setTitle(listing.getTitle());
+        dto.setDescription(listing.getDescription());
+        dto.setPrice(listing.getPrice() != null ? listing.getPrice().doubleValue() : null);
+        dto.setCurrency(listing.getCurrency());
+        dto.setStatus(null); // Listing entity non ha status, lasciare null
+        dto.setCreatedAt(null); // Listing entity non ha createdAt, lasciare null
+        dto.setSellerId(listing.getSeller());
+        dto.setCardId(listing.getCard() != null ? listing.getCard().getId().toString() : null);
+        
+        // Calcola convertedPrice e convertedCurrency
+        if (listing.getPrice() != null && listing.getCurrency() != null) {
+            try {
+                double converted = currencyConversionService.convert(
+                    listing.getPrice().doubleValue(),
+                    listing.getCurrency(),
+                    targetCurrency
+                );
+                dto.setConvertedPrice(converted);
+                dto.setConvertedCurrency(targetCurrency);
+            } catch (Exception e) {
+                log.warn("Errore durante conversione valuta per listing {}: {}", listing.getId(), e.getMessage());
+                // In caso di errore, usa il prezzo originale
+                dto.setConvertedPrice(listing.getPrice().doubleValue());
+                dto.setConvertedCurrency(listing.getCurrency());
+            }
+        } else {
+            dto.setConvertedPrice(listing.getPrice() != null ? listing.getPrice().doubleValue() : null);
+            dto.setConvertedCurrency(listing.getCurrency());
+        }
+        
+        return dto;
     }
 }

@@ -9,6 +9,7 @@ public class TransactionDTO {
     private String buyerId;
     private String listingId;
     private Double price;
+    private String currency;
     private String status;
     private LocalDateTime createdAt;
 }
