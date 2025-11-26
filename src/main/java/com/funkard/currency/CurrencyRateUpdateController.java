@@ -25,7 +25,7 @@ import java.util.Map;
     "https://funkard.com",
     "https://www.funkard.com",
     "http://localhost:3000",
-    "http://localhost:3002"
+    "http://localhost:3002",
     "https://funkard-currency-updater.roberto-colono17.workers.dev"
 }, allowCredentials = "true")
 public class CurrencyRateUpdateController {
