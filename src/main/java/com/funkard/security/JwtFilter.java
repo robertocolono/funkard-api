@@ -39,23 +39,31 @@ public class JwtFilter extends OncePerRequestFilter {
         
         String path = request.getRequestURI();
         
-        // 🔓 Esclusione endpoint pubblici e cron (PRIMA di qualsiasi logica JWT)
-        if (path != null) {
-            // Escludi endpoint pubblici
-            if (path.startsWith("/public/")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            // Escludi endpoint currency refresh-rates (cron)
-            if (path.contains("/api/currency/refresh-rates")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        // 🔓 Esclusione endpoint pubblici (PRIMA di qualsiasi logica JWT)
+        if (path != null && path.startsWith("/public/")) {
+            filterChain.doFilter(request, response);
+            return;
         }
         
         logger.warn("🔥 DEBUG REQUEST PATH = '" + path + "'");
         
         String authHeader = request.getHeader("Authorization");
+        
+        // 🔓 Bypass per token cron Cloudflare (PRIMA di qualsiasi parsing JWT)
+        if (authHeader != null) {
+            String cronSecret = System.getenv("FUNKARD_CRON_SECRET");
+            if (cronSecret == null || cronSecret.trim().isEmpty()) {
+                cronSecret = System.getProperty("FUNKARD_CRON_SECRET", "");
+            }
+            cronSecret = cronSecret != null ? cronSecret.trim() : "";
+            String expectedCronHeader = "Bearer " + cronSecret;
+            
+            if (authHeader.equals(expectedCronHeader)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+        
         String token = null;
         String email = null;
 
