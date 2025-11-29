@@ -73,6 +73,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             // 🔒 Disabilita CSRF (non serve per REST API stateless)
+            // Nota: endpoint /api/currency/refresh-rates e /api/currency/refresh-rates/test
+            // sono esplicitamente esclusi dal filtro JWT e non richiedono CSRF token
             .csrf(AbstractHttpConfigurer::disable)
 
             // 🌐 Abilita CORS personalizzato
@@ -117,6 +119,12 @@ public class SecurityConfig {
                     "/api/trends/**",
                     "/api/ads/**"
                 ).permitAll()
+                
+                // 🔐 Endpoint currency richiedono autenticazione
+                .requestMatchers("/api/currency/**").authenticated()
+                
+                // 🔓 Endpoint cron currency refresh-rates (protetto da Bearer token nel controller)
+                .requestMatchers("/api/currency/refresh-rates").permitAll()
                 
                 // 🔐 Tutti gli altri endpoint richiedono autenticazione
                 .anyRequest().authenticated()

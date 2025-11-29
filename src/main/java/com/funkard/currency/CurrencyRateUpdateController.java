@@ -62,6 +62,10 @@ public class CurrencyRateUpdateController {
         secretValue = secretValue != null ? secretValue.trim() : "";
         String expected = "Bearer " + secretValue;
         
+        log.warn("🔍 [DEBUG] secretValue='{}'", secretValue);
+        log.warn("🔍 [DEBUG] expected='{}'", expected);
+        log.warn("🔍 [DEBUG] authHeader='{}'", authHeader);
+        
         // Log di debug per verificare valori letti
         log.warn("🔍 [DEBUG] FUNKARD_CRON_SECRET_CURRENCY letto: {}", secretValue);
         log.warn("🔍 [DEBUG] Authorization header ricevuto: {}", authHeader);
