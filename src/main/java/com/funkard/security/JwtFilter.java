@@ -47,7 +47,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
             // Escludi endpoint currency refresh-rates (cron)
-            if (path.contains("/currency/refresh-rates")) {
+            if (path.contains("/api/currency/refresh-rates")) {
                 filterChain.doFilter(request, response);
                 return;
             }
