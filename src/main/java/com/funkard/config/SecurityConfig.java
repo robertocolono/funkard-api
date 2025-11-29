@@ -84,6 +84,7 @@ public class SecurityConfig {
             // 🔓 Regole di accesso
             .authorizeHttpRequests(auth -> auth
                 // 🔓 Endpoint pubblici
+                .requestMatchers("/public/**").permitAll()
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/translate/**",

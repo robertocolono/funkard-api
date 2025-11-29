@@ -37,14 +37,23 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
-        logger.warn("🔥 DEBUG REQUEST PATH = '" + request.getRequestURI() + "'");
-        
         String path = request.getRequestURI();
-        if (path != null && path.contains("/currency/refresh-rates")) {
-            logger.warn("🔥 BYPASS JWT per endpoint currency: " + path);
-            filterChain.doFilter(request, response);
-            return;
+        
+        // 🔓 Esclusione endpoint pubblici e cron (PRIMA di qualsiasi logica JWT)
+        if (path != null) {
+            // Escludi endpoint pubblici
+            if (path.startsWith("/public/")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            // Escludi endpoint currency refresh-rates (cron)
+            if (path.contains("/currency/refresh-rates")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
+        
+        logger.warn("🔥 DEBUG REQUEST PATH = '" + path + "'");
         
         String authHeader = request.getHeader("Authorization");
         String token = null;
