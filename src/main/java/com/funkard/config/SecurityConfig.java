@@ -120,11 +120,11 @@ public class SecurityConfig {
                     "/api/ads/**"
                 ).permitAll()
                 
-                // 🔐 Endpoint currency richiedono autenticazione
-                .requestMatchers("/api/currency/**").authenticated()
-                
                 // 🔓 Endpoint cron currency refresh-rates (protetto da Bearer token nel controller)
                 .requestMatchers("/api/currency/refresh-rates").permitAll()
+                
+                // 🔐 Endpoint currency richiedono autenticazione
+                .requestMatchers("/api/currency/**").authenticated()
                 
                 // 🔐 Tutti gli altri endpoint richiedono autenticazione
                 .anyRequest().authenticated()
