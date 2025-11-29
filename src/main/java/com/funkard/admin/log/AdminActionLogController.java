@@ -57,7 +57,7 @@ public class AdminActionLogController {
 
             // 📊 Aggiorna status del cleanup
             String result = deleted > 0 ? "success" : "no_entries";
-            systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()));
+            systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()), authHeader);
 
             return ResponseEntity.ok("🧹 Deleted " + deleted + " old admin logs (older than 2 months)");
         }
@@ -82,7 +82,7 @@ public class AdminActionLogController {
 
         // 📊 Aggiorna status del cleanup
         String result = deleted > 0 ? "success" : "no_entries";
-        systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()));
+        systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()), authHeader);
 
         return ResponseEntity.ok("🧹 Deleted " + deleted + " old admin logs (older than 2 months)");
     }
