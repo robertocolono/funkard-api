@@ -1,6 +1,7 @@
-package com.funkard.admin.log;
+package com.funkard.admin.system;
 
-import com.funkard.admin.system.SystemMaintenanceController;
+import com.funkard.admin.log.AdminActionLogRepository;
+import com.funkard.admin.service.SystemCleanupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -9,30 +10,22 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
+/**
+ * 🔧 Controller per operazioni di manutenzione sistema
+ * Endpoint protetti con Bearer token FUNKARD_CRON_SECRET o JWT con ruolo ADMIN
+ */
 @RestController
-@RequestMapping("/api/admin/logs")
+@RequestMapping("/api/admin/maintenance")
 @RequiredArgsConstructor
 @Slf4j
-public class AdminActionLogController {
+public class MaintenanceController {
 
     private final AdminActionLogRepository logRepository;
-    private final SystemMaintenanceController systemController;
+    private final SystemCleanupService cleanupService;
 
-    @GetMapping("/{type}/{id}")
-    public ResponseEntity<List<AdminActionLog>> getHistory(
-            @PathVariable String type, @PathVariable Long id) {
-        List<AdminActionLog> logs = logRepository.findByTargetIdAndTargetTypeOrderByCreatedAtAsc(id, type.toUpperCase());
-        return ResponseEntity.ok(logs);
-    }
-
-    // 🧹 cleanup automatico per log vecchi di 2 mesi
-    @RequestMapping(
-        value = "/cleanup",
-        method = {RequestMethod.DELETE, RequestMethod.POST}
-    )
-    public ResponseEntity<String> cleanupOldLogs(
+    @PostMapping("/cleanup-logs")
+    public ResponseEntity<String> cleanupLogs(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
         // 🔓 Verifica token cron Cloudflare (bypass per cron worker)
@@ -47,18 +40,12 @@ public class AdminActionLogController {
             // Bypass: cron worker autorizzato
             LocalDateTime cutoff = LocalDateTime.now().minusMonths(2);
             int deleted = logRepository.deleteOlderThan(cutoff);
-
-            // 🔎 Log su Render console
-            if (deleted > 0) {
-                log.info("🧹 Funkard Admin Logs Cleanup — deleted {} old entries (older than {}) [cron]", deleted, cutoff);
-            } else {
-                log.info("✅ Funkard Admin Logs Cleanup — no old entries to delete (checked up to {}) [cron]", cutoff);
-            }
-
-            // 📊 Aggiorna status del cleanup
+            
+            log.info("🧹 Funkard Maintenance Logs Cleanup — deleted {} old entries (older than {}) [cron]", deleted, cutoff);
+            
             String result = deleted > 0 ? "success" : "no_entries";
-            systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()));
-
+            cleanupService.saveCleanupResult(result, deleted, "Maintenance logs cleanup");
+            
             return ResponseEntity.ok("🧹 Deleted " + deleted + " old admin logs (older than 2 months)");
         }
         
@@ -72,18 +59,13 @@ public class AdminActionLogController {
         
         LocalDateTime cutoff = LocalDateTime.now().minusMonths(2);
         int deleted = logRepository.deleteOlderThan(cutoff);
-
-        // 🔎 Log su Render console
-        if (deleted > 0) {
-            log.info("🧹 Funkard Admin Logs Cleanup — deleted {} old entries (older than {})", deleted, cutoff);
-        } else {
-            log.info("✅ Funkard Admin Logs Cleanup — no old entries to delete (checked up to {})", cutoff);
-        }
-
-        // 📊 Aggiorna status del cleanup
+        
+        log.info("🧹 Funkard Maintenance Logs Cleanup — deleted {} old entries (older than {})", deleted, cutoff);
+        
         String result = deleted > 0 ? "success" : "no_entries";
-        systemController.updateCleanupStatus(new SystemMaintenanceController.CleanupStatus(result, deleted, LocalDateTime.now()));
-
+        cleanupService.saveCleanupResult(result, deleted, "Maintenance logs cleanup");
+        
         return ResponseEntity.ok("🧹 Deleted " + deleted + " old admin logs (older than 2 months)");
     }
 }
+

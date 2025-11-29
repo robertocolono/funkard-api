@@ -10,7 +10,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.Principal;
@@ -107,9 +110,38 @@ public class AdminNotificationController {
         return ResponseEntity.ok(service.archive(id, user, note));
     }
 
-    @DeleteMapping("/cleanup")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
-    public ResponseEntity<CleanupRes> cleanup(@RequestParam(defaultValue = "30") int days) {
+    @RequestMapping(
+        value = "/cleanup",
+        method = {RequestMethod.DELETE, RequestMethod.POST}
+    )
+    public ResponseEntity<CleanupRes> cleanup(
+            @RequestParam(defaultValue = "30") int days,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        // 🔓 Verifica token cron Cloudflare (bypass per cron worker)
+        String cronSecret = System.getenv("FUNKARD_CRON_SECRET");
+        if (cronSecret == null || cronSecret.isBlank()) {
+            cronSecret = System.getProperty("FUNKARD_CRON_SECRET", "");
+        }
+        cronSecret = cronSecret != null ? cronSecret.trim() : "";
+        String expected = "Bearer " + cronSecret;
+        
+        if (authHeader != null && authHeader.equals(expected)) {
+            // Bypass: cron worker autorizzato
+            log.info("🧹 Cleanup notifiche archiviate più vecchie di {} giorni (cron)", days);
+            long deleted = service.cleanupArchivedOlderThanDays(days);
+            log.info("✅ Eliminate {} notifiche", deleted);
+            return ResponseEntity.ok(new CleanupRes(deleted, days));
+        }
+        
+        // 🔐 Richiede autenticazione ADMIN per utenti normali
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() ||
+            auth.getAuthorities().stream().noneMatch(a -> 
+                a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"))) {
+            throw new RuntimeException("Access Denied");
+        }
+        
         log.info("🧹 Cleanup notifiche archiviate più vecchie di {} giorni", days);
         long deleted = service.cleanupArchivedOlderThanDays(days);
         log.info("✅ Eliminate {} notifiche", deleted);
