@@ -96,6 +96,14 @@ public class SecurityConfig {
                     "/actuator/**"
                 ).permitAll()
                 
+                // 🔓 Cron endpoints (protetti dal secret nel controller)
+                .requestMatchers("/api/admin/notifications/cleanup").permitAll()
+                .requestMatchers("/api/admin/support/cleanup").permitAll()
+                .requestMatchers("/api/admin/maintenance/cleanup-logs").permitAll()
+                .requestMatchers("/api/admin/logs/cleanup").permitAll()
+                .requestMatchers("/api/admin/system/cleanup/status").permitAll()
+                .requestMatchers("/api/valuation/refreshIncremental").permitAll()
+                
                 // 🔐 Endpoint admin richiedono autenticazione (gestiti da @PreAuthorize)
                 .requestMatchers("/api/admin/**").authenticated()
                 
