@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -44,7 +45,8 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
 
     @Modifying
     @Transactional
-    int deleteByArchivedTrueAndArchivedAtBefore(LocalDateTime time);
+    @Query("DELETE FROM AdminNotification n WHERE n.archived = true AND n.archivedAt < :time")
+    int deleteByArchivedTrueAndArchivedAtBefore(@Param("time") LocalDateTime time);
     
     // Metodi aggiuntivi per compatibilità
     long countByReadFalse();
