@@ -80,7 +80,7 @@ public class AdminNotificationService {
     }
 
     @Transactional
-    public long cleanupArchivedOlderThanDays(int days) {
+    public int cleanupArchivedOlderThanDays(int days) {
         LocalDateTime limit = LocalDateTime.now().minusDays(days);
         return repo.deleteByArchivedTrueAndArchivedAtBefore(limit);
     }

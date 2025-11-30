@@ -4,7 +4,9 @@ import com.funkard.admin.model.AdminNotification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,7 +42,9 @@ public interface AdminNotificationRepository extends JpaRepository<AdminNotifica
     """)
     Page<AdminNotification> filterPaginated(String type, String priority, String status, Pageable pageable);
 
-    long deleteByArchivedTrueAndArchivedAtBefore(LocalDateTime olderThan);
+    @Modifying
+    @Transactional
+    int deleteByArchivedTrueAndArchivedAtBefore(LocalDateTime time);
     
     // Metodi aggiuntivi per compatibilità
     long countByReadFalse();

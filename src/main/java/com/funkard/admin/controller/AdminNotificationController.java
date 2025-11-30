@@ -1,6 +1,7 @@
 package com.funkard.admin.controller;
 
 import com.funkard.admin.model.AdminNotification;
+import com.funkard.admin.repository.AdminNotificationRepository;
 import com.funkard.admin.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +35,7 @@ import java.util.UUID;
 public class AdminNotificationController {
 
     private final AdminNotificationService service;
+    private final AdminNotificationRepository adminNotificationRepository;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
@@ -129,7 +132,8 @@ public class AdminNotificationController {
         if (authHeader != null && authHeader.equals(expected)) {
             // Bypass: cron worker autorizzato
             log.info("🧹 Cleanup notifiche archiviate più vecchie di {} giorni (cron)", days);
-            long deleted = service.cleanupArchivedOlderThanDays(days);
+            LocalDateTime thresholdDate = LocalDateTime.now().minusDays(days);
+            int deleted = adminNotificationRepository.deleteByArchivedTrueAndArchivedAtBefore(thresholdDate);
             log.info("✅ Eliminate {} notifiche", deleted);
             return ResponseEntity.ok(new CleanupRes(deleted, days));
         }
@@ -143,7 +147,8 @@ public class AdminNotificationController {
         }
         
         log.info("🧹 Cleanup notifiche archiviate più vecchie di {} giorni", days);
-        long deleted = service.cleanupArchivedOlderThanDays(days);
+        LocalDateTime thresholdDate = LocalDateTime.now().minusDays(days);
+        int deleted = adminNotificationRepository.deleteByArchivedTrueAndArchivedAtBefore(thresholdDate);
         log.info("✅ Eliminate {} notifiche", deleted);
         return ResponseEntity.ok(new CleanupRes(deleted, days));
     }
@@ -171,5 +176,5 @@ public class AdminNotificationController {
     }
 
     public record NoteReq(String note) {}
-    public record CleanupRes(long deleted, int olderThanDays) {}
+    public record CleanupRes(int deleted, int olderThanDays) {}
 }
