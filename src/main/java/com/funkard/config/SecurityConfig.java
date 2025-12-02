@@ -104,6 +104,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/system/cleanup/status").permitAll()
                 .requestMatchers("/api/valuation/refreshIncremental").permitAll()
                 
+                // 🔓 Endpoint validazione token admin (PUBBLICO - validazione nel controller)
+                .requestMatchers("/api/admin/auth/token/**").permitAll()
+                
                 // 🔐 Endpoint admin richiedono autenticazione (gestiti da @PreAuthorize)
                 .requestMatchers("/api/admin/**").authenticated()
                 
