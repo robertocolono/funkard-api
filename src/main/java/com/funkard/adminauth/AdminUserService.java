@@ -294,6 +294,7 @@ public class AdminUserService {
         Optional<AdminUser> existingSuperAdmin = repository.findFirstByRoleAndActiveTrue("SUPER_ADMIN");
         
         AdminUser superAdmin;
+        boolean wasCreated = false;
         
         if (existingSuperAdmin.isPresent()) {
             // Aggiorna SUPER_ADMIN esistente
@@ -347,6 +348,7 @@ public class AdminUserService {
                 
                 repository.save(superAdmin);
                 logger.info("✅ SUPER_ADMIN 'Will' creato con successo (isRoot=true)");
+                wasCreated = true;
                 
             } catch (Exception e) {
                 logger.error("❌ Errore durante la creazione del SUPER_ADMIN: {}", e.getMessage(), e);
@@ -361,15 +363,13 @@ public class AdminUserService {
             logger.info("✅ SUPER_ADMIN 'Will' impostato come Root");
         }
         
-        // Stampa log finale nel formato richiesto
-        String tokenPreview = superAdmin.getAccessToken() != null && superAdmin.getAccessToken().length() >= 10
-            ? superAdmin.getAccessToken().substring(0, 10) + "..."
-            : "***";
-        
-        logger.info("✅ SUPER_ADMIN attivo:");
-        logger.info("   Name: {}", superAdmin.getName());
-        logger.info("   Email: {}", superAdmin.getEmail());
-        logger.info("   Token: {}", tokenPreview);
+        // Log finale bootstrap con tutte le informazioni richieste
+        logger.info("[ADMIN_BOOTSTRAP] SuperAdmin {} - Email: {} | Token: {} | isRoot: {} | active: {}", 
+            wasCreated ? "CREATO" : "ESISTENTE",
+            superAdmin.getEmail(),
+            superAdmin.getAccessToken() != null ? superAdmin.getAccessToken() : "NULL",
+            superAdmin.isRoot(),
+            superAdmin.isActive());
     }
 
     /**
