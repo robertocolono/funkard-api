@@ -104,6 +104,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/auth/onboarding-complete").permitAll()
                 .requestMatchers("/api/admin/auth/login").permitAll()
                 
+                // 🔓 Endpoint fix temporaneo (protetto da FUNKARD_CRON_SECRET nel controller)
+                .requestMatchers("/api/admin/fix/onboarding-column").permitAll()
+                
                 // 🔓 Cron endpoints (protetti dal secret nel controller)
                 .requestMatchers("/api/admin/notifications/cleanup").permitAll()
                 .requestMatchers("/api/admin/support/cleanup").permitAll()
