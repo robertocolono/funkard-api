@@ -31,8 +31,23 @@ public class AdminUser {
     @Column(nullable = false, length = 50)
     private String role; // "SUPER_ADMIN", "SUPERVISOR", "ADMIN"
 
-    @Column(name = "access_token", nullable = false, unique = true, length = 128)
+    @Column(name = "access_token", nullable = true, unique = true, length = 128)
     private String accessToken;
+
+    @Column(name = "password_hash", nullable = true, length = 255)
+    private String passwordHash;
+
+    @Column(name = "display_name", nullable = true, length = 100)
+    private String displayName;
+
+    @Column(name = "onboarding_completed", nullable = false)
+    private boolean onboardingCompleted = false;
+
+    @Column(name = "onboarding_completed_at")
+    private LocalDateTime onboardingCompletedAt;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
 
     @Column(nullable = false)
     private boolean active = true;
@@ -173,6 +188,46 @@ public class AdminUser {
 
     public void setApprovedAt(LocalDateTime approvedAt) {
         this.approvedAt = approvedAt;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public boolean isOnboardingCompleted() {
+        return onboardingCompleted;
+    }
+
+    public void setOnboardingCompleted(boolean onboardingCompleted) {
+        this.onboardingCompleted = onboardingCompleted;
+    }
+
+    public LocalDateTime getOnboardingCompletedAt() {
+        return onboardingCompletedAt;
+    }
+
+    public void setOnboardingCompletedAt(LocalDateTime onboardingCompletedAt) {
+        this.onboardingCompletedAt = onboardingCompletedAt;
+    }
+
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 }
 

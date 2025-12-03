@@ -2,12 +2,14 @@ package com.funkard.adminauth;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,9 +22,11 @@ public class AdminUserService {
     private static final Logger logger = LoggerFactory.getLogger(AdminUserService.class);
     
     private final AdminUserRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AdminUserService(AdminUserRepository repository) {
+    public AdminUserService(AdminUserRepository repository, PasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -36,6 +40,162 @@ public class AdminUserService {
         return repository.findByAccessToken(token)
                 .filter(AdminUser::isActive)
                 .orElse(null);
+    }
+
+    /**
+     * 🔍 Trova un utente admin per email (solo se attivo e onboarding completato)
+     */
+    public AdminUser getByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+        
+        return repository.findByEmail(email)
+                .filter(AdminUser::isActive)
+                .filter(AdminUser::isOnboardingCompleted)
+                .orElse(null);
+    }
+
+    /**
+     * ✅ Valida token di onboarding (deve essere attivo e onboarding NON completato)
+     * @param token Token da validare
+     * @return AdminUser se valido, null altrimenti
+     * @throws IllegalArgumentException se token già usato (onboardingCompleted = true)
+     */
+    public AdminUser validateOnboardingToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return null;
+        }
+        
+        Optional<AdminUser> userOpt = repository.findByAccessToken(token)
+                .filter(AdminUser::isActive);
+        
+        if (userOpt.isEmpty()) {
+            return null;
+        }
+        
+        AdminUser user = userOpt.get();
+        
+        // Se onboarding già completato, token non è più valido
+        if (user.isOnboardingCompleted()) {
+            throw new IllegalArgumentException("Token già utilizzato per onboarding");
+        }
+        
+        return user;
+    }
+
+    /**
+     * ✅ Completa onboarding di un admin
+     * @param token Token di onboarding
+     * @param email Email dell'admin
+     * @param password Password in plain text (verrà hashata)
+     * @param displayName Nome visualizzato
+     * @return AdminUser aggiornato
+     * @throws IllegalArgumentException se validazioni falliscono
+     */
+    @Transactional
+    public AdminUser completeOnboarding(String token, String email, String password, String displayName) {
+        // Valida token
+        AdminUser user = validateOnboardingToken(token);
+        if (user == null) {
+            throw new IllegalArgumentException("Token non valido o utente inattivo");
+        }
+        
+        // Valida email formato
+        if (email == null || email.trim().isEmpty() || !email.matches("^[^@]+@[^@]+\\.[^@]+$")) {
+            throw new IllegalArgumentException("Email non valida");
+        }
+        
+        // Verifica email unica (se diversa da quella esistente)
+        if (!email.equals(user.getEmail())) {
+            if (repository.findByEmail(email).isPresent()) {
+                throw new IllegalArgumentException("Email già utilizzata da un altro admin");
+            }
+        }
+        
+        // Valida password
+        validatePassword(password);
+        
+        // Valida displayName
+        if (displayName == null || displayName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Display name richiesto");
+        }
+        if (displayName.length() > 100) {
+            throw new IllegalArgumentException("Display name troppo lungo (max 100 caratteri)");
+        }
+        
+        // Hash password
+        String passwordHash = passwordEncoder.encode(password);
+        
+        // Aggiorna utente
+        user.setEmail(email);
+        user.setPasswordHash(passwordHash);
+        user.setDisplayName(displayName.trim());
+        user.setOnboardingCompleted(true);
+        user.setOnboardingCompletedAt(LocalDateTime.now());
+        user.setAccessToken(null); // Token monouso, azzerato dopo uso
+        
+        AdminUser saved = repository.save(user);
+        
+        logger.info("✅ Onboarding completato per admin: {} ({})", displayName, email);
+        
+        return saved;
+    }
+
+    /**
+     * 🔐 Login admin con email e password
+     * @param email Email dell'admin
+     * @param password Password in plain text
+     * @return AdminUser se login riuscito
+     * @throws IllegalArgumentException se credenziali non valide
+     */
+    @Transactional
+    public AdminUser login(String email, String password) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email richiesta");
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password richiesta");
+        }
+        
+        // Trova utente per email (solo se attivo e onboarding completato)
+        AdminUser user = getByEmail(email);
+        if (user == null) {
+            throw new IllegalArgumentException("Credenziali non valide");
+        }
+        
+        // Verifica password
+        if (user.getPasswordHash() == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Credenziali non valide");
+        }
+        
+        // Aggiorna lastLoginAt
+        user.setLastLoginAt(LocalDateTime.now());
+        AdminUser saved = repository.save(user);
+        
+        logger.info("🔐 Login admin: {} ({})", saved.getDisplayName() != null ? saved.getDisplayName() : saved.getName(), email);
+        
+        return saved;
+    }
+
+    /**
+     * ✅ Valida password secondo policy (min 8 caratteri, almeno un numero)
+     * @param password Password da validare
+     * @throws IllegalArgumentException se password non valida
+     */
+    private void validatePassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password richiesta");
+        }
+        
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("Password deve essere di almeno 8 caratteri");
+        }
+        
+        if (!password.matches(".*\\d.*")) {
+            throw new IllegalArgumentException("Password deve contenere almeno un numero");
+        }
     }
 
     /**

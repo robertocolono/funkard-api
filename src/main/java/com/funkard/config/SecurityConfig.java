@@ -1,8 +1,10 @@
 package com.funkard.config;
 
+import com.funkard.adminauth.AdminSessionFilter;
 import com.funkard.security.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -27,9 +29,11 @@ import jakarta.servlet.http.HttpServletRequest;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final AdminSessionFilter adminSessionFilter;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
+    public SecurityConfig(JwtFilter jwtFilter, AdminSessionFilter adminSessionFilter) {
         this.jwtFilter = jwtFilter;
+        this.adminSessionFilter = adminSessionFilter;
     }
 
     @Bean
@@ -69,7 +73,65 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * 🔐 SecurityFilterChain per /api/admin/** (sessioni stateful)
+     * @Order(1) → valutata per prima (più specifica)
+     */
     @Bean
+    @Order(1)
+    public SecurityFilterChain adminSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // 🔒 Applica solo a /api/admin/**
+            .securityMatcher("/api/admin/**")
+            
+            // 🔒 Disabilita CSRF (non serve per REST API)
+            .csrf(AbstractHttpConfigurer::disable)
+
+            // 🌐 Abilita CORS personalizzato (con supporto cookie)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            // ⚙️ Sessione stateful (per cookie httpOnly)
+            .sessionManagement(sm -> sm
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .maximumSessions(1) // Una sessione per admin
+                .maxSessionsPreventsLogin(false) // Permette login multipli (logout del vecchio)
+            )
+
+            // 🔓 Regole di accesso
+            .authorizeHttpRequests(auth -> auth
+                // 🔓 Endpoint pubblici admin (onboarding e login)
+                .requestMatchers("/api/admin/auth/token-check").permitAll()
+                .requestMatchers("/api/admin/auth/onboarding-complete").permitAll()
+                .requestMatchers("/api/admin/auth/login").permitAll()
+                
+                // 🔓 Cron endpoints (protetti dal secret nel controller)
+                .requestMatchers("/api/admin/notifications/cleanup").permitAll()
+                .requestMatchers("/api/admin/support/cleanup").permitAll()
+                .requestMatchers("/api/admin/maintenance/cleanup-logs").permitAll()
+                .requestMatchers("/api/admin/logs/cleanup").permitAll()
+                .requestMatchers("/api/admin/system/cleanup/status").permitAll()
+                
+                // 🔐 Tutti gli altri endpoint admin richiedono autenticazione
+                .anyRequest().authenticated()
+            )
+
+            // 🔐 Aggiunge filtro sessioni admin prima dell'autenticazione base
+            .addFilterBefore(adminSessionFilter, UsernamePasswordAuthenticationFilter.class)
+
+            // ❌ Disabilita form login e basic auth HTML
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    /**
+     * 🔐 SecurityFilterChain default per tutto il resto (JWT stateless)
+     * @Order(2) → valutata per seconda (default)
+     * INVARIATA rispetto alla versione precedente
+     */
+    @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             // 🔒 Disabilita CSRF (non serve per REST API stateless)
