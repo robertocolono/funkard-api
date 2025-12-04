@@ -81,13 +81,8 @@ public class SupportController {
     // TODO: Endpoint legacy non più utilizzato — commentato per pulizia FASE 4
     // Endpoint: GET /api/support/tickets/{id}
     /*
-    /**
-     * 📄 Ottieni dettagli ticket specifico
-     * GET /api/support/tickets/{id}
-     */
     @GetMapping("/tickets/{id}")
     public ResponseEntity<?> getTicket(@PathVariable UUID id) {
-        // log.warn("Chiamata a endpoint legacy non più utilizzato: /api/support/tickets/{}", id);
         try {
             SupportTicket ticket = ticketService.findById(id);
             
