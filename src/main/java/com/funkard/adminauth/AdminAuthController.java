@@ -638,7 +638,7 @@ public class AdminAuthController {
         }
     }
 
-    // ==================== NUOVO SISTEMA ONBOARDING E LOGIN ====================
+    // ==================== TOKEN CHECK (legacy, mantenuto per compatibilità) ====================
 
     /**
      * 🔍 GET /api/admin/auth/token-check?token=...
@@ -650,6 +650,9 @@ public class AdminAuthController {
      * Risposta 400: token mancante
      * Risposta 401: token non valido o utente inattivo
      * Risposta 410: token già usato (onboardingCompleted = true)
+     * 
+     * NOTA: Gli endpoint login, onboarding-complete, logout e me sono stati spostati
+     * in AdminAuthControllerModern per evitare conflitti di mapping.
      */
     @GetMapping("/token-check")
     public ResponseEntity<?> tokenCheck(@RequestParam(required = false) String token) {
@@ -686,220 +689,10 @@ public class AdminAuthController {
         }
     }
 
-    /**
-     * ✅ POST /api/admin/auth/onboarding-complete
-     * Completa onboarding di un admin con token monouso
-     * 
-     * Body: { token, email, password, displayName }
-     * 
-     * Risposta 200/201: { id, email, displayName, role, isRoot, lastLoginAt }
-     * Risposta 400: validazione fallita
-     * Risposta 401: token non valido
-     * Risposta 410: token già usato
-     */
-    @PostMapping("/onboarding-complete")
-    public ResponseEntity<?> onboardingComplete(@RequestBody OnboardingCompleteRequest request) {
-        if (request.getToken() == null || request.getToken().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Token richiesto"));
-        }
-
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Email richiesta"));
-        }
-
-        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Password richiesta"));
-        }
-
-        if (request.getDisplayName() == null || request.getDisplayName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Display name richiesto"));
-        }
-
-        try {
-            AdminUser user = userService.completeOnboarding(
-                    request.getToken(),
-                    request.getEmail(),
-                    request.getPassword(),
-                    request.getDisplayName()
-            );
-
-            AdminResponse response = new AdminResponse(
-                    user.getId(),
-                    user.getEmail(),
-                    user.getDisplayName(),
-                    user.getRole(),
-                    user.isRoot(),
-                    user.getLastLoginAt()
-            );
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Errore durante il completamento onboarding: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 🔐 POST /api/admin/auth/login
-     * Login admin con email e password
-     * Crea sessione e imposta cookie httpOnly
-     * 
-     * Body: { email, password }
-     * 
-     * Risposta 200: { id, email, displayName, role, isRoot, lastLoginAt }
-     * Risposta 400: campi mancanti
-     * Risposta 401: credenziali non valide
-     */
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Email richiesta"));
-        }
-
-        if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Password richiesta"));
-        }
-
-        try {
-            AdminUser user = userService.login(request.getEmail(), request.getPassword());
-
-            // Crea sessione
-            String sessionId = sessionService.createSession(user.getId());
-
-            // Crea cookie httpOnly
-            Cookie cookie = new Cookie("admin_session", sessionId);
-            cookie.setHttpOnly(true);
-            cookie.setSecure(true); // Solo HTTPS in produzione
-            cookie.setPath("/");
-            cookie.setMaxAge(14400); // 4 ore in secondi
-            cookie.setAttribute("SameSite", "None"); // Cross-site support
-            response.addCookie(cookie);
-
-            AdminResponse adminResponse = new AdminResponse(
-                    user.getId(),
-                    user.getEmail(),
-                    user.getDisplayName(),
-                    user.getRole(),
-                    user.isRoot(),
-                    user.getLastLoginAt()
-            );
-
-            return ResponseEntity.ok(adminResponse);
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Errore durante il login: " + e.getMessage()));
-        }
-    }
-
-    /**
-     * 🚪 POST /api/admin/auth/logout
-     * Logout admin: invalida sessione e rimuove cookie
-     * 
-     * Risposta 200: { success: true }
-     */
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
-        // Estrai sessionId dal cookie
-        String sessionId = extractSessionId(request);
-        
-        if (sessionId != null) {
-            sessionService.invalidateSession(sessionId);
-        }
-        
-        // Rimuovi cookie
-        Cookie cookie = new Cookie("admin_session", "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // Elimina cookie
-        cookie.setAttribute("SameSite", "None");
-        response.addCookie(cookie);
-        
-        return ResponseEntity.ok(Map.of("success", true, "message", "Logout effettuato con successo"));
-    }
-    
-    /**
-     * 🍪 Estrae sessionId dal cookie admin_session
-     */
-    private String extractSessionId(HttpServletRequest request) {
-        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return null;
-        }
-        
-        for (jakarta.servlet.http.Cookie cookie : cookies) {
-            if ("admin_session".equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        
-        return null;
-    }
-
-    /**
-     * 👤 GET /api/admin/auth/me
-     * Restituisce i dati dell'admin corrente
-     * Legge da SecurityContext (popolato da AdminSessionFilter)
-     * 
-     * Risposta 200: { id, email, displayName, role, isRoot, lastLoginAt }
-     * Risposta 401: non autenticato
-     */
-    @GetMapping("/me")
-    public ResponseEntity<?> me() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Autenticazione richiesta"));
-        }
-        
-        // Estrai email da UserDetails
-        Object principal = authentication.getPrincipal();
-        String email = null;
-        
-        if (principal instanceof UserDetails) {
-            email = ((UserDetails) principal).getUsername();
-        } else if (principal instanceof String) {
-            email = (String) principal;
-        }
-        
-        if (email == null || email.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Impossibile identificare l'admin"));
-        }
-        
-        // Trova admin per email
-        AdminUser user = userService.getByEmail(email);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Admin non trovato"));
-        }
-        
-        AdminResponse response = new AdminResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getDisplayName(),
-                user.getRole(),
-                user.isRoot(),
-                user.getLastLoginAt()
-        );
-
-        return ResponseEntity.ok(response);
-    }
+    // ==================== ENDPOINT MODERNI SPOSTATI ====================
+    // Gli endpoint login, onboarding-complete, logout e me sono stati spostati
+    // in AdminAuthControllerModern per evitare conflitti di mapping.
+    // Usa AdminAuthControllerModern per questi endpoint.
 
 }
 
