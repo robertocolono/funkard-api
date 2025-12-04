@@ -3,6 +3,7 @@ package com.funkard.admin.controller;
 import com.funkard.admin.service.AdminNotificationCleanupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -16,6 +17,7 @@ public class AdminCleanupController {
 
     // 🧹 Pulizia manuale
     @PostMapping("/manual")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> manualCleanup(
             @RequestParam(defaultValue = "30") int daysOld) {
         
@@ -33,6 +35,7 @@ public class AdminCleanupController {
 
     // 📊 Statistiche pulizia
     @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> getCleanupStats() {
         cleanupService.printCleanupStats();
         
@@ -48,6 +51,7 @@ public class AdminCleanupController {
 
     // 🔄 Test pulizia (solo per sviluppo)
     @PostMapping("/test")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> testCleanup() {
         // Test con 1 giorno per vedere se funziona
         int deletedCount = cleanupService.manualCleanup(1);

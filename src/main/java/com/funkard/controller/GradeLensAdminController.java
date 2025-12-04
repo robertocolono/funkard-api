@@ -1,6 +1,7 @@
 package com.funkard.controller;
 
 import com.funkard.repository.GradeReportRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class GradeLensAdminController {
     }
 
     @GetMapping("/metrics")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public Map<String, Object> metrics() {
         var now = LocalDateTime.now();
         var since24h = now.minusHours(24);
@@ -37,6 +39,7 @@ public class GradeLensAdminController {
     }
 
     @PostMapping("/purge")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public Map<String, Object> purgeExpired() {
         var now = LocalDateTime.now();
         var expired = repo.findByExpiresAtBefore(now);

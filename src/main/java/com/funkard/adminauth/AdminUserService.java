@@ -31,8 +31,18 @@ public class AdminUserService {
 
     /**
      * 🔍 Trova un utente admin per token (solo se attivo)
+     * 
+     * @deprecated Questo metodo usa accessToken legacy che viene azzerato dopo onboarding.
+     * Gli utenti moderni hanno accessToken = null e usano sessioni httpOnly.
+     * Usa SecurityContext per ottenere l'admin corrente invece di questo metodo.
+     * Questo metodo sarà rimosso in una versione futura.
+     * 
+     * @param token Token legacy (accessToken)
+     * @return AdminUser se trovato e attivo, null altrimenti
      */
+    @Deprecated(since = "2025-01", forRemoval = true)
     public AdminUser getByToken(String token) {
+        logger.warn("⚠️ DEPRECATED: getByToken() called with token. Use SecurityContext instead.");
         if (token == null || token.trim().isEmpty()) {
             return null;
         }

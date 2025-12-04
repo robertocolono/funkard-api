@@ -400,3 +400,4 @@ async function assignTicket(ticketId, supportEmail) {
 4. Aggiungere gestione errori lato frontend
 5. Implementare notifiche push (opzionale)
 
+

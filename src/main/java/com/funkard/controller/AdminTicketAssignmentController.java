@@ -5,6 +5,7 @@ import com.funkard.admin.service.SupportTicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,6 +27,7 @@ public class AdminTicketAssignmentController {
      * POST /api/admin/tickets/{id}/assign
      */
     @PostMapping("/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> assignTicket(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
@@ -67,6 +69,7 @@ public class AdminTicketAssignmentController {
      * POST /api/admin/tickets/{id}/release
      */
     @PostMapping("/{id}/release")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> releaseTicket(@PathVariable UUID id) {
         try {
             SupportTicket ticket = ticketService.releaseTicket(id);
@@ -97,6 +100,7 @@ public class AdminTicketAssignmentController {
      * POST /api/admin/tickets/{id}/assign-with-role
      */
     @PostMapping("/{id}/assign-with-role")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> assignTicketWithRole(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
@@ -147,6 +151,7 @@ public class AdminTicketAssignmentController {
      * POST /api/admin/tickets/{id}/release-with-role
      */
     @PostMapping("/{id}/release-with-role")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> releaseTicketWithRole(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
@@ -190,6 +195,7 @@ public class AdminTicketAssignmentController {
      * GET /api/admin/tickets/assignment-stats
      */
     @GetMapping("/assignment-stats")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> getAssignmentStats() {
         try {
             long totalTickets = ticketService.countAll();

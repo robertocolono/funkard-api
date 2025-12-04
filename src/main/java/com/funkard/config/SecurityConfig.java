@@ -1,6 +1,7 @@
 package com.funkard.config;
 
 import com.funkard.adminauth.AdminSessionFilter;
+import com.funkard.adminauthmodern.AdminSessionFilterModern;
 import com.funkard.security.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,10 +31,15 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final AdminSessionFilter adminSessionFilter;
+    private final AdminSessionFilterModern adminSessionFilterModern;
 
-    public SecurityConfig(JwtFilter jwtFilter, AdminSessionFilter adminSessionFilter) {
+    public SecurityConfig(
+            JwtFilter jwtFilter, 
+            AdminSessionFilter adminSessionFilter,
+            AdminSessionFilterModern adminSessionFilterModern) {
         this.jwtFilter = jwtFilter;
         this.adminSessionFilter = adminSessionFilter;
+        this.adminSessionFilterModern = adminSessionFilterModern;
     }
 
     @Bean
@@ -118,7 +124,10 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
 
-            // 🔐 Aggiunge filtro sessioni admin prima dell'autenticazione base
+            // 🔐 Aggiunge filtri sessioni admin
+            // Il filtro moderno gestisce ADMIN_SESSION, il legacy gestisce admin_session
+            // Ordine: moderno → legacy → UsernamePasswordAuthenticationFilter
+            .addFilterBefore(adminSessionFilterModern, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(adminSessionFilter, UsernamePasswordAuthenticationFilter.class)
 
             // ❌ Disabilita form login e basic auth HTML

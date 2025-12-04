@@ -5,6 +5,7 @@ import com.funkard.adminaccess.repository.AdminAccessTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public class AdminTokenController {
      * Lista tutti i token
      */
     @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> listTokens() {
         return ResponseEntity.ok(tokenRepository.findAll());
     }
@@ -38,6 +40,7 @@ public class AdminTokenController {
      * Header: Authorization (deve contenere SUPER_ADMIN_TOKEN)
      */
     @PostMapping("/generate")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> generateToken(
             @RequestParam String role,
             @RequestHeader("Authorization") String authHeader) {
@@ -72,6 +75,7 @@ public class AdminTokenController {
      * Valida un token
      */
     @GetMapping("/validate/{token}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     public ResponseEntity<?> validateToken(@PathVariable String token) {
         return tokenRepository.findByToken(token)
                 .map(t -> ResponseEntity.ok(Map.of(

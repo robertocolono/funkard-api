@@ -6,6 +6,7 @@ import com.funkard.adminaccess.service.AdminAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class AdminAccessController {
      * Header: Authorization: Bearer {SUPER_ADMIN_TOKEN}
      */
     @PostMapping("/generate")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> generateToken(
             @RequestParam String role,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -98,6 +100,7 @@ public class AdminAccessController {
      * Header: Authorization: Bearer {SUPER_ADMIN_TOKEN}
      */
     @GetMapping("/requests")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> getRequests(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
@@ -136,6 +139,7 @@ public class AdminAccessController {
      * Header: Authorization: Bearer {SUPER_ADMIN_TOKEN}
      */
     @PostMapping("/approve/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> approveRequest(
             @PathVariable UUID id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -170,6 +174,7 @@ public class AdminAccessController {
      * Header: Authorization: Bearer {SUPER_ADMIN_TOKEN}
      */
     @PostMapping("/reject/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> rejectRequest(
             @PathVariable UUID id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -203,6 +208,7 @@ public class AdminAccessController {
      * Header: Authorization: Bearer {SUPER_ADMIN_TOKEN}
      */
     @GetMapping("/tokens")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> listTokens(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         

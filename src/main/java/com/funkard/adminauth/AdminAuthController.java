@@ -4,8 +4,11 @@ import com.funkard.adminauth.dto.*;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +26,8 @@ import java.util.UUID;
 @CrossOrigin(origins = {"https://funkard.com", "https://www.funkard.com", "http://localhost:3002"})
 public class AdminAuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminAuthController.class);
+
     private final AdminUserService userService;
     private final AdminTokenService tokenService;
     private final AccessRequestService accessRequestService;
@@ -34,6 +39,45 @@ public class AdminAuthController {
         this.tokenService = tokenService;
         this.accessRequestService = accessRequestService;
         this.sessionService = sessionService;
+    }
+
+    /**
+     * 🔐 Helper: Recupera admin corrente da SecurityContext
+     * Usa autenticazione moderna basata su sessioni httpOnly
+     * @return AdminUser corrente o null se non autenticato
+     */
+    private AdminUser getCurrentAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            logger.warn("⚠️ Unauthorized admin access attempt: no authentication in SecurityContext");
+            return null;
+        }
+        
+        // Estrai email da principal
+        Object principal = authentication.getPrincipal();
+        String email = null;
+        
+        if (principal instanceof UserDetails) {
+            email = ((UserDetails) principal).getUsername();
+        } else if (principal instanceof String) {
+            email = (String) principal;
+        }
+        
+        if (email == null || email.trim().isEmpty()) {
+            logger.warn("⚠️ Unauthorized admin access attempt: unable to extract email from principal");
+            return null;
+        }
+        
+        // Trova admin per email
+        AdminUser admin = userService.getByEmail(email);
+        if (admin == null) {
+            logger.warn("⚠️ Unauthorized admin access attempt: admin not found for email: {}", email);
+            return null;
+        }
+        
+        logger.debug("✅ Admin authenticated: {} ({})", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getName(), email);
+        return admin;
     }
 
     /**
@@ -110,23 +154,23 @@ public class AdminAuthController {
     /**
      * ➕ POST /api/admin/auth/users/create
      * Crea un nuovo utente admin (solo SUPER_ADMIN)
+     * Usa autenticazione moderna basata su sessioni httpOnly
      * 
      * Body: { "name": "...", "email": "...", "role": "ADMIN|SUPERVISOR" }
-     * Header: X-Admin-Token (token del SUPER_ADMIN che richiede)
      */
     @PostMapping("/users/create")
-    public ResponseEntity<?> createUser(
-            @RequestBody Map<String, String> request,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        // Verifica che il richiedente sia SUPER_ADMIN
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> createUser(@RequestBody Map<String, String> request) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: createUser requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !"SUPER_ADMIN".equals(requester.getRole())) {
+        
+        if (!"SUPER_ADMIN".equals(requester.getRole())) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to create user", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo SUPER_ADMIN può creare nuovi utenti"));
         }
@@ -149,14 +193,14 @@ public class AdminAuthController {
 
         try {
             AdminUser newUser = userService.createUser(name, email, role, requester);
+            logger.info("✅ Admin {} created new user: {} ({})", requester.getEmail(), newUser.getEmail(), role);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "user", Map.of(
                     "id", newUser.getId().toString(),
                     "name", newUser.getName(),
                     "email", newUser.getEmail(),
-                    "role", newUser.getRole(),
-                    "token", newUser.getAccessToken()
+                    "role", newUser.getRole()
                 )
             ));
         } catch (SecurityException e) {
@@ -174,33 +218,38 @@ public class AdminAuthController {
     /**
      * 🔄 PATCH /api/admin/auth/users/{id}/regenerate-token
      * Rigenera il token per un utente (solo SUPER_ADMIN)
+     * Usa autenticazione moderna basata su sessioni httpOnly
+     * 
+     * NOTA: Questo endpoint rigenera accessToken legacy (deprecato).
+     * Gli utenti moderni non usano più accessToken dopo onboarding.
      */
     @PatchMapping("/users/{id}/regenerate-token")
-    public ResponseEntity<?> regenerateToken(
-            @PathVariable UUID id,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        // Verifica che il richiedente sia SUPER_ADMIN
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> regenerateToken(@PathVariable UUID id) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: regenerateToken requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !"SUPER_ADMIN".equals(requester.getRole())) {
+        
+        if (!"SUPER_ADMIN".equals(requester.getRole())) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to regenerate token", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo SUPER_ADMIN può rigenerare token"));
         }
 
         try {
             AdminUser updated = userService.regenerateToken(id, requester);
+            logger.info("✅ Admin {} regenerated token for user: {}", requester.getEmail(), updated.getEmail());
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "user", Map.of(
                     "id", updated.getId().toString(),
-                    "email", updated.getEmail(),
-                    "newToken", updated.getAccessToken()
-                )
+                    "email", updated.getEmail()
+                ),
+                "message", "Token rigenerato (legacy, deprecato per utenti moderni)"
             ));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -217,20 +266,21 @@ public class AdminAuthController {
     /**
      * 🚫 PATCH /api/admin/auth/users/{id}/deactivate
      * Disattiva un utente admin (solo SUPER_ADMIN)
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @PatchMapping("/users/{id}/deactivate")
-    public ResponseEntity<?> deactivateUser(
-            @PathVariable UUID id,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        // Verifica che il richiedente sia SUPER_ADMIN
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> deactivateUser(@PathVariable UUID id) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: deactivateUser requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !"SUPER_ADMIN".equals(requester.getRole())) {
+        
+        if (!"SUPER_ADMIN".equals(requester.getRole())) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to deactivate user", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo SUPER_ADMIN può disattivare utenti"));
         }
@@ -243,6 +293,7 @@ public class AdminAuthController {
 
         try {
             userService.deactivate(id, requester);
+            logger.info("✅ Admin {} deactivated user: {}", requester.getEmail(), id);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Utente disattivato con successo"
@@ -261,26 +312,29 @@ public class AdminAuthController {
     
     /**
      * ✅ PATCH /api/admin/auth/users/{id}/activate
-     * Riattiva un utente admin (solo Root per SUPER_ADMIN)
+     * Riattiva un utente admin (solo SUPER_ADMIN)
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @PatchMapping("/users/{id}/activate")
-    public ResponseEntity<?> activateUser(
-            @PathVariable UUID id,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> activateUser(@PathVariable UUID id) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: activateUser requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !"SUPER_ADMIN".equals(requester.getRole())) {
+        
+        if (!"SUPER_ADMIN".equals(requester.getRole())) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to activate user", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo SUPER_ADMIN può riattivare utenti"));
         }
 
         try {
             userService.activate(id, requester);
+            logger.info("✅ Admin {} activated user: {}", requester.getEmail(), id);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Utente riattivato con successo"
@@ -299,21 +353,24 @@ public class AdminAuthController {
     
     /**
      * 🔄 PATCH /api/admin/auth/users/{id}/role
-     * Cambia ruolo di un utente (solo Root per promuovere/demotere SUPER_ADMIN)
+     * Cambia ruolo di un utente (solo SUPER_ADMIN)
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @PatchMapping("/users/{id}/role")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> changeRole(
             @PathVariable UUID id,
-            @RequestBody Map<String, String> request,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+            @RequestBody Map<String, String> request) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: changeRole requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !"SUPER_ADMIN".equals(requester.getRole())) {
+        
+        if (!"SUPER_ADMIN".equals(requester.getRole())) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to change role", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo SUPER_ADMIN può cambiare ruoli"));
         }
@@ -326,6 +383,7 @@ public class AdminAuthController {
 
         try {
             userService.changeRole(id, newRole, requester);
+            logger.info("✅ Admin {} changed role for user {} to {}", requester.getEmail(), id, newRole);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Ruolo cambiato con successo"
@@ -346,18 +404,21 @@ public class AdminAuthController {
      * 📋 GET /api/admin/auth/team/list
      * Lista tutti gli utenti admin del team
      * Mostra isRoot solo se il chiamante è root
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @GetMapping("/team/list")
-    public ResponseEntity<?> listTeam(
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> listTeam() {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: listTeam requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !"SUPER_ADMIN".equals(requester.getRole())) {
+        
+        if (!"SUPER_ADMIN".equals(requester.getRole())) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to list team", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo SUPER_ADMIN può visualizzare il team"));
         }
@@ -399,20 +460,23 @@ public class AdminAuthController {
 
     /**
      * ➕ POST /api/admin/auth/tokens/create
-     * Crea un nuovo token di ruolo (solo Root)
+     * Crea un nuovo token di ruolo (AdminToken moderno)
+     * Solo SUPER_ADMIN root può creare token
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @PostMapping("/tokens/create")
-    public ResponseEntity<?> createToken(
-            @RequestBody Map<String, String> request,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> createToken(@RequestBody Map<String, String> request) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: createToken requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !requester.isRoot()) {
+        
+        if (!requester.isRoot()) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to create token (not root)", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo Root Super Admin può creare token di ruolo"));
         }
@@ -428,6 +492,7 @@ public class AdminAuthController {
 
         try {
             String tokenValue = tokenService.createToken(role, requester.getId());
+            logger.info("✅ Admin {} (root) created new token for role: {}", requester.getEmail(), role);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", Map.of(
@@ -446,19 +511,23 @@ public class AdminAuthController {
 
     /**
      * 📋 GET /api/admin/auth/tokens/list
-     * Lista tutti i token di ruolo (solo Root)
+     * Lista tutti i token di ruolo (AdminToken moderno)
+     * Solo SUPER_ADMIN root può visualizzare token
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @GetMapping("/tokens/list")
-    public ResponseEntity<?> listTokens(
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> listTokens() {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: listTokens requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !requester.isRoot()) {
+        
+        if (!requester.isRoot()) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to list tokens (not root)", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo Root Super Admin può visualizzare token"));
         }
@@ -483,26 +552,30 @@ public class AdminAuthController {
 
     /**
      * 🚫 POST /api/admin/auth/tokens/{id}/disable
-     * Disabilita un token di ruolo (solo Root)
+     * Disabilita un token di ruolo (AdminToken moderno)
+     * Solo SUPER_ADMIN root può disabilitare token
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @PostMapping("/tokens/{id}/disable")
-    public ResponseEntity<?> disableToken(
-            @PathVariable UUID id,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> disableToken(@PathVariable UUID id) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: disableToken requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !requester.isRoot()) {
+        
+        if (!requester.isRoot()) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to disable token (not root)", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo Root Super Admin può disabilitare token"));
         }
 
         try {
             tokenService.deactivateToken(id);
+            logger.info("✅ Admin {} (root) disabled token: {}", requester.getEmail(), id);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Token disabilitato con successo"
@@ -518,21 +591,25 @@ public class AdminAuthController {
 
     /**
      * 🔄 POST /api/admin/auth/tokens/{id}/regenerate
-     * Rigenera un token di ruolo (solo Root)
+     * Rigenera un token di ruolo (AdminToken moderno)
+     * Solo SUPER_ADMIN root può rigenerare token
+     * Usa autenticazione moderna basata su sessioni httpOnly
      */
     @PostMapping("/tokens/{id}/regenerate")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> regenerateToken(
             @PathVariable UUID id,
-            @RequestBody Map<String, String> request,
-            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        
-        if (adminToken == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Token admin richiesto"));
+            @RequestBody Map<String, String> request) {
+        // Recupera admin corrente da SecurityContext (autenticazione moderna)
+        AdminUser requester = getCurrentAdmin();
+        if (requester == null) {
+            logger.warn("🚫 Legacy token bypass removed: regenerateToken requires modern session authentication");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Autenticazione richiesta"));
         }
-
-        AdminUser requester = userService.getByToken(adminToken);
-        if (requester == null || !requester.isRoot()) {
+        
+        if (!requester.isRoot()) {
+            logger.warn("🚫 Unauthorized admin access attempt: {} tried to regenerate token (not root)", requester.getEmail());
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Solo Root Super Admin può rigenerare token"));
         }
@@ -545,6 +622,7 @@ public class AdminAuthController {
 
         try {
             String newToken = tokenService.regenerateToken(id, requester.getId());
+            logger.info("✅ Admin {} (root) regenerated token: {}", requester.getEmail(), id);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", Map.of(

@@ -521,3 +521,4 @@ log.info("📦 Archiviazione notifica {} da {}", notificationId, adminEmail);
 **Documento creato:** 2025-01-15  
 **Ultimo aggiornamento:** 2025-01-15
 
+

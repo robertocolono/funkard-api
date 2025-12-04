@@ -1,0 +1,279 @@
+package com.funkard.adminauthmodern;
+
+import com.funkard.adminauth.AdminToken;
+import com.funkard.adminauth.AdminTokenRepository;
+import com.funkard.adminauth.AdminUser;
+import com.funkard.adminauth.AdminUserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * 🔐 Service moderno per autenticazione admin
+ * Usa BCrypt per password hashing
+ * Usa AdminSessionServiceModern per gestione sessioni
+ */
+@Service
+public class AdminAuthServiceModern {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminAuthServiceModern.class);
+    
+    private final AdminUserRepository adminUserRepository;
+    private final AdminTokenRepository adminTokenRepository;
+    private final AdminSessionServiceModern sessionService;
+    private final PasswordEncoder passwordEncoder;
+    
+    public AdminAuthServiceModern(
+            AdminUserRepository adminUserRepository,
+            AdminTokenRepository adminTokenRepository,
+            AdminSessionServiceModern sessionService) {
+        this.adminUserRepository = adminUserRepository;
+        this.adminTokenRepository = adminTokenRepository;
+        this.sessionService = sessionService;
+        this.passwordEncoder = new BCryptPasswordEncoder();
+    }
+    
+    /**
+     * 🔐 Login admin con email e password
+     * @param email Email dell'admin
+     * @param password Password in plain text
+     * @return Map con sessionId e admin data se successo
+     * @throws IllegalArgumentException se credenziali non valide
+     */
+    @Transactional
+    public Map<String, Object> login(String email, String password) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email richiesta");
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password richiesta");
+        }
+        
+        // Trova admin per email
+        Optional<AdminUser> adminOpt = adminUserRepository.findByEmail(email);
+        
+        if (adminOpt.isEmpty()) {
+            logger.warn("⚠️ Tentativo login con email non trovata: {}", email);
+            throw new IllegalArgumentException("Credenziali non valide");
+        }
+        
+        AdminUser admin = adminOpt.get();
+        
+        // Verifica che admin sia attivo e onboarding completato
+        if (!admin.isActive()) {
+            logger.warn("⚠️ Tentativo login con admin non attivo: {}", email);
+            throw new IllegalArgumentException("Account non attivo");
+        }
+        
+        if (!admin.isOnboardingCompleted()) {
+            logger.warn("⚠️ Tentativo login con onboarding non completato: {}", email);
+            throw new IllegalArgumentException("Onboarding non completato");
+        }
+        
+        // Verifica password
+        if (admin.getPasswordHash() == null || admin.getPasswordHash().trim().isEmpty()) {
+            logger.warn("⚠️ Admin senza password hash: {}", email);
+            throw new IllegalArgumentException("Credenziali non valide");
+        }
+        
+        if (!passwordEncoder.matches(password, admin.getPasswordHash())) {
+            logger.warn("⚠️ Password non valida per: {}", email);
+            throw new IllegalArgumentException("Credenziali non valide");
+        }
+        
+        // Aggiorna lastLoginAt
+        admin.setLastLoginAt(LocalDateTime.now());
+        adminUserRepository.save(admin);
+        
+        // Crea sessione
+        String sessionId = sessionService.createSession(admin.getId());
+        
+        logger.info("✅ Login admin moderno riuscito: {} ({})", 
+            admin.getDisplayName() != null ? admin.getDisplayName() : admin.getName(), 
+            email);
+        
+        return Map.of(
+            "success", true,
+            "sessionId", sessionId,
+            "admin", Map.of(
+                "id", admin.getId().toString(),
+                "email", admin.getEmail(),
+                "role", admin.getRole(),
+                "displayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getName()
+            )
+        );
+    }
+    
+    /**
+     * ✅ Completa onboarding di un admin usando token di ruolo (AdminToken)
+     * @param token Token di onboarding (AdminToken)
+     * @param email Email dell'admin
+     * @param password Password in plain text (verrà hashata)
+     * @param displayName Nome visualizzato
+     * @return Map con admin data se successo
+     * @throws ResponseStatusException con status code appropriato
+     */
+    @Transactional
+    public Map<String, Object> completeOnboarding(String token, String email, String password, String displayName) {
+        // Validazione input
+        if (token == null || token.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token richiesto");
+        }
+        
+        if (email == null || email.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email richiesta");
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password richiesta");
+        }
+        
+        if (displayName == null || displayName.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Display name richiesto");
+        }
+        
+        // Validazione formato email base
+        if (!email.contains("@") || email.length() < 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato email non valido");
+        }
+        
+        // Validazione formato password (minimo 8 caratteri)
+        if (password.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password deve contenere almeno 8 caratteri");
+        }
+        
+        // 🔍 Valida token (AdminToken)
+        Optional<AdminToken> tokenOpt = adminTokenRepository.findByToken(token);
+        
+        if (tokenOpt.isEmpty()) {
+            logger.warn("⚠️ Tentativo onboarding con token non trovato: {}", token.substring(0, Math.min(8, token.length())) + "...");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Token non trovato");
+        }
+        
+        AdminToken adminToken = tokenOpt.get();
+        
+        // Verifica che token sia attivo
+        if (!adminToken.isActive()) {
+            logger.warn("⚠️ Tentativo onboarding con token già usato: {}", adminToken.getId());
+            throw new ResponseStatusException(HttpStatus.GONE, "Token già utilizzato");
+        }
+        
+        // Verifica che token non sia scaduto
+        if (adminToken.getExpiresAt() != null && adminToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            logger.warn("⚠️ Tentativo onboarding con token scaduto: {}", adminToken.getId());
+            throw new ResponseStatusException(HttpStatus.GONE, "Token scaduto");
+        }
+        
+        // 🔍 Verifica se email è già registrata
+        Optional<AdminUser> existingAdminOpt = adminUserRepository.findByEmail(email);
+        if (existingAdminOpt.isPresent()) {
+            logger.warn("⚠️ Tentativo onboarding con email già registrata: {}", email);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email già registrata");
+        }
+        
+        // 🔑 Recupera ruolo dal token
+        String role = adminToken.getRole();
+        if (role == null || role.trim().isEmpty()) {
+            logger.error("❌ Token senza ruolo: {}", adminToken.getId());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token non valido: ruolo mancante");
+        }
+        
+        // Hash password
+        String passwordHash = passwordEncoder.encode(password);
+        
+        // ➕ Crea nuovo admin
+        AdminUser newAdmin = new AdminUser();
+        newAdmin.setName(displayName);
+        newAdmin.setEmail(email);
+        newAdmin.setRole(role);
+        newAdmin.setPasswordHash(passwordHash);
+        newAdmin.setDisplayName(displayName);
+        newAdmin.setOnboardingCompleted(true);
+        newAdmin.setOnboardingCompletedAt(LocalDateTime.now());
+        newAdmin.setActive(true);
+        newAdmin.setAccessToken(null); // Nessun token legacy
+        
+        AdminUser savedAdmin = adminUserRepository.save(newAdmin);
+        
+        // 🚫 Invalida token dopo l'uso (monouso)
+        adminToken.setActive(false);
+        adminTokenRepository.save(adminToken);
+        
+        logger.info("✅ Onboarding moderno completato: {} ({}) con ruolo {}", 
+            displayName, email, role);
+        
+        return Map.of(
+            "success", true,
+            "admin", Map.of(
+                "id", savedAdmin.getId().toString(),
+                "email", savedAdmin.getEmail(),
+                "role", savedAdmin.getRole(),
+                "displayName", savedAdmin.getDisplayName()
+            )
+        );
+    }
+    
+    /**
+     * 👤 Recupera admin corrente dalla sessione
+     * @param sessionId ID della sessione
+     * @return Map con admin data se sessione valida
+     * @throws IllegalArgumentException se sessione non valida
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCurrentAdmin(String sessionId) {
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Sessione non valida");
+        }
+        
+        Optional<UUID> adminIdOpt = sessionService.validateSession(sessionId);
+        
+        if (adminIdOpt.isEmpty()) {
+            throw new IllegalArgumentException("Sessione non valida o scaduta");
+        }
+        
+        UUID adminId = adminIdOpt.get();
+        Optional<AdminUser> adminOpt = adminUserRepository.findById(adminId);
+        
+        if (adminOpt.isEmpty()) {
+            throw new IllegalArgumentException("Admin non trovato");
+        }
+        
+        AdminUser admin = adminOpt.get();
+        
+        // Verifica che admin sia attivo
+        if (!admin.isActive()) {
+            throw new IllegalArgumentException("Account non attivo");
+        }
+        
+        return Map.of(
+            "id", admin.getId().toString(),
+            "email", admin.getEmail(),
+            "role", admin.getRole(),
+            "displayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getName()
+        );
+    }
+    
+    /**
+     * 🚪 Logout admin (invalida sessione)
+     * @param sessionId ID della sessione
+     */
+    @Transactional
+    public void logout(String sessionId) {
+        if (sessionId != null && !sessionId.trim().isEmpty()) {
+            sessionService.invalidateSession(sessionId);
+            logger.info("🚪 Logout admin moderno: sessione invalidata");
+        }
+    }
+}
+

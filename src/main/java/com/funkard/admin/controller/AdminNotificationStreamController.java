@@ -4,6 +4,7 @@ import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.service.AdminNotificationService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,6 +25,7 @@ public class AdminNotificationStreamController {
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public SseEmitter streamNotifications() {
         SseEmitter emitter = new SseEmitter(30000L); // 30 secondi timeout
         

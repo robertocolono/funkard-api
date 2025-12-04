@@ -2,8 +2,9 @@ package com.funkard.admin.controller;
 
 import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.repository.AdminNotificationRepository;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -24,6 +25,7 @@ public class AdminNotificationActionController {
     }
 
     @PatchMapping("/archive/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> archiveNotification(@PathVariable UUID id) {
         Optional<AdminNotification> optNotif = notificationRepository.findById(id);
 

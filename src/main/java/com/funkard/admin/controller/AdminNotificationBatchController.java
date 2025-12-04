@@ -2,6 +2,7 @@ package com.funkard.admin.controller;
 
 import com.funkard.admin.service.AdminNotificationService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class AdminNotificationBatchController {
     }
 
     @PostMapping("/batch/resolve")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> batchResolve(@RequestBody List<UUID> notificationIds) {
         try {
             int resolvedCount = 0;
@@ -47,12 +49,14 @@ public class AdminNotificationBatchController {
     }
 
     @PostMapping("/batch/archive")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> batchArchive(@RequestBody List<UUID> notificationIds) {
         // Per ora, archiviare = risolvere
         return batchResolve(notificationIds);
     }
 
     @DeleteMapping("/batch/delete")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> batchDelete(@RequestBody List<UUID> notificationIds) {
         try {
             int deletedCount = 0;
