@@ -4,6 +4,7 @@ import com.funkard.adminauth.AdminToken;
 import com.funkard.adminauth.AdminTokenRepository;
 import com.funkard.adminauth.AdminUser;
 import com.funkard.adminauth.AdminUserRepository;
+import com.funkard.adminauth.AdminUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -31,15 +32,18 @@ public class AdminAuthServiceModern {
     private final AdminUserRepository adminUserRepository;
     private final AdminTokenRepository adminTokenRepository;
     private final AdminSessionServiceModern sessionService;
+    private final AdminUserService adminUserService;
     private final PasswordEncoder passwordEncoder;
     
     public AdminAuthServiceModern(
             AdminUserRepository adminUserRepository,
             AdminTokenRepository adminTokenRepository,
-            AdminSessionServiceModern sessionService) {
+            AdminSessionServiceModern sessionService,
+            AdminUserService adminUserService) {
         this.adminUserRepository = adminUserRepository;
         this.adminTokenRepository = adminTokenRepository;
         this.sessionService = sessionService;
+        this.adminUserService = adminUserService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
     
@@ -157,8 +161,46 @@ public class AdminAuthServiceModern {
         Optional<AdminToken> tokenOpt = adminTokenRepository.findByToken(token);
         
         if (tokenOpt.isEmpty()) {
-            logger.warn("⚠️ Tentativo onboarding con token non trovato: {}", token.substring(0, Math.min(8, token.length())) + "...");
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Token non trovato");
+            // 🔄 Fallback: prova con token legacy (AdminUser.accessToken)
+            logger.info("🔄 Token non trovato in AdminTokenRepository, tentativo fallback legacy per token: {}", token.substring(0, Math.min(8, token.length())) + "...");
+            
+            try {
+                AdminUser savedAdmin = adminUserService.completeOnboarding(token, email, password, displayName);
+                
+                logger.info("✅ Onboarding legacy completato: {} ({}) con ruolo {}", 
+                    displayName, email, savedAdmin.getRole());
+                
+                // Costruisci la stessa struttura di risposta del flusso moderno
+                return Map.of(
+                    "success", true,
+                    "admin", Map.of(
+                        "id", savedAdmin.getId().toString(),
+                        "email", savedAdmin.getEmail(),
+                        "role", savedAdmin.getRole(),
+                        "displayName", savedAdmin.getDisplayName() != null ? savedAdmin.getDisplayName() : savedAdmin.getName()
+                    )
+                );
+                
+            } catch (IllegalArgumentException e) {
+                String errorMessage = e.getMessage();
+                logger.warn("⚠️ Errore durante onboarding legacy: {}", errorMessage);
+                
+                // Mappa IllegalArgumentException su ResponseStatusException con status appropriato
+                HttpStatus status;
+                if (errorMessage != null && (
+                    errorMessage.contains("già utilizzato") || 
+                    errorMessage.contains("onboarding") && errorMessage.contains("già") ||
+                    errorMessage.contains("già usato")
+                )) {
+                    status = HttpStatus.GONE; // 410
+                } else if (errorMessage != null && errorMessage.contains("Email già utilizzata")) {
+                    status = HttpStatus.CONFLICT; // 409
+                } else {
+                    status = HttpStatus.BAD_REQUEST; // 400
+                }
+                
+                throw new ResponseStatusException(status, errorMessage);
+            }
         }
         
         AdminToken adminToken = tokenOpt.get();
