@@ -1,6 +1,7 @@
 package com.funkard.config;
 
-import com.funkard.adminauth.AdminSessionFilter;
+// ⚠️ LEGACY - DISABILITATO 2025-12-06
+// import com.funkard.adminauth.AdminSessionFilter; // Filtro legacy commentato
 import com.funkard.adminauthmodern.AdminSessionFilterModern;
 import com.funkard.security.JwtFilter;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +23,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
-import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
 @EnableWebSecurity
@@ -30,15 +30,17 @@ import jakarta.servlet.http.HttpServletRequest;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
-    private final AdminSessionFilter adminSessionFilter;
+    // ⚠️ LEGACY - DISABILITATO 2025-12-06
+    // Filtro legacy commentato (sostituito da AdminSessionFilterModern)
+    // private final AdminSessionFilter adminSessionFilter;
     private final AdminSessionFilterModern adminSessionFilterModern;
 
     public SecurityConfig(
             JwtFilter jwtFilter, 
-            AdminSessionFilter adminSessionFilter,
+            // AdminSessionFilter adminSessionFilter, // LEGACY - DISABILITATO
             AdminSessionFilterModern adminSessionFilterModern) {
         this.jwtFilter = jwtFilter;
-        this.adminSessionFilter = adminSessionFilter;
+        // this.adminSessionFilter = adminSessionFilter; // LEGACY - DISABILITATO
         this.adminSessionFilterModern = adminSessionFilterModern;
     }
 
@@ -61,6 +63,7 @@ public class SecurityConfig {
             "https://www.funkard.com",
             "https://funkard.com",
             "https://admin.funkard.com",
+            "https://funkard-adminreal.vercel.app",
             "http://localhost:3000",
             "http://localhost:3002"
         ));
@@ -125,10 +128,11 @@ public class SecurityConfig {
             )
 
             // 🔐 Aggiunge filtri sessioni admin
-            // Il filtro moderno gestisce ADMIN_SESSION, il legacy gestisce admin_session
-            // Ordine: moderno → legacy → UsernamePasswordAuthenticationFilter
+            // Il filtro moderno gestisce ADMIN_SESSION (cookie maiuscolo, database-backed)
+            // ⚠️ Filtro legacy (admin_session, in-memory) DISABILITATO 2025-12-06
+            // Ordine: moderno → UsernamePasswordAuthenticationFilter
             .addFilterBefore(adminSessionFilterModern, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(adminSessionFilter, UsernamePasswordAuthenticationFilter.class)
+            // .addFilterBefore(adminSessionFilter, UsernamePasswordAuthenticationFilter.class) // LEGACY - DISABILITATO
 
             // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
