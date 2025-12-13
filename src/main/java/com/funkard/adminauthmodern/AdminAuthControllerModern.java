@@ -168,30 +168,16 @@ public class AdminAuthControllerModern {
                 authService.logout(sessionId);
             }
             
-            // Rimuovi cookie usando la stessa logica di createSessionCookie
-            String origin = request.getHeader("Origin");
-            boolean isCrossSite = isCrossSiteRequest(request, origin);
-            
-            boolean isSecure;
-            String sameSite;
-            
-            if (isCrossSite) {
-                isSecure = true;
-                sameSite = "None";
-                logger.debug("🍪 Cookie ADMIN_SESSION rimosso per cross-site: Origin={}, SameSite=None, Secure=true", origin);
-            } else {
-                boolean isProduction = "prod".equals(activeProfile);
-                isSecure = isProduction;
-                sameSite = "Lax";
-                logger.debug("🍪 Cookie ADMIN_SESSION rimosso per same-site: Origin={}, SameSite=Lax, Secure={}", origin, isSecure);
-            }
+            // Rimuovi cookie con stessa configurazione di creazione (domain, secure, sameSite)
+            logger.debug("🍪 Cookie ADMIN_SESSION rimosso: Domain=.funkard.com, SameSite=None, Secure=true");
             
             ResponseCookie cookie = ResponseCookie.from("ADMIN_SESSION", "")
+                    .domain(".funkard.com")
                     .httpOnly(true)
-                    .secure(isSecure)
+                    .secure(true)
                     .path("/")
                     .maxAge(0) // Elimina cookie
-                    .sameSite(sameSite)
+                    .sameSite("None")
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
             
@@ -205,44 +191,27 @@ public class AdminAuthControllerModern {
     }
     
     /**
-     * 🍪 Crea cookie di sessione con SameSite corretto per cross-site e same-site
+     * 🍪 Crea cookie di sessione con dominio condiviso per tutti i sottodomini funkard.com
      * Usa ResponseCookie di Spring Framework per supporto SameSite completo
      * 
-     * Logica:
-     * - Cross-site (Origin diverso da server origin): SameSite=None; Secure=true
-     * - Same-site (Origin corrisponde a server origin): SameSite=Lax; Secure basato su profile
-     * - Origin assente: assume cross-site (SameSite=None; Secure=true) per sicurezza
+     * Configurazione:
+     * - Domain: .funkard.com (condiviso tra admin.funkard.com, funkard.com, api.funkard.com)
+     * - SameSite: None (per cross-site requests)
+     * - Secure: true (obbligatorio con SameSite=None)
+     * - HttpOnly: true (protezione XSS)
+     * - Path: / (disponibile su tutto il dominio)
+     * - Max-Age: 14400 secondi (4 ore)
      */
     private ResponseCookie createSessionCookie(String sessionId, HttpServletRequest request) {
-        // Rileva se la richiesta è cross-site confrontando Origin con server origin
-        String origin = request.getHeader("Origin");
-        boolean isCrossSite = isCrossSiteRequest(request, origin);
+        logger.debug("🍪 Cookie ADMIN_SESSION creato: Domain=.funkard.com, SameSite=None, Secure=true");
         
-        boolean isSecure;
-        String sameSite;
-        
-        if (isCrossSite) {
-            // Cross-site: SameSite=None richiede obbligatoriamente Secure=true
-            isSecure = true;
-            sameSite = "None";
-            logger.debug("🍪 Cookie ADMIN_SESSION creato per cross-site: Origin={}, SameSite=None, Secure=true", origin);
-        } else {
-            // Same-site: SameSite=Lax, Secure basato su profile
-            boolean isProduction = "prod".equals(activeProfile);
-            isSecure = isProduction; // true in prod (HTTPS), false in dev locale se necessario
-            sameSite = "Lax";
-            logger.debug("🍪 Cookie ADMIN_SESSION creato per same-site: Origin={}, SameSite=Lax, Secure={}", origin, isSecure);
-        }
-        
-        // Domain NON viene impostato esplicitamente (default behavior del browser)
-        // Path="/" per rendere il cookie disponibile su tutto il dominio
         return ResponseCookie.from("ADMIN_SESSION", sessionId)
+                .domain(".funkard.com")
                 .httpOnly(true)
-                .secure(isSecure)
+                .secure(true)
                 .path("/")
-                .maxAge(4 * 60 * 60) // 4 ore in secondi
-                .sameSite(sameSite)
-                // Domain NON impostato - verrà usato il default del browser (dominio del server)
+                .maxAge(4 * 60 * 60) // 4 ore in secondi (14400)
+                .sameSite("None")
                 .build();
     }
     
