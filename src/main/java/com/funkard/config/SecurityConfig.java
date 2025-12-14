@@ -112,6 +112,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/auth/token-check").permitAll()
                 .requestMatchers("/api/admin/auth/onboarding-complete").permitAll()
                 .requestMatchers("/api/admin/auth/login").permitAll()
+                // 🔓 Endpoint pubblici admin v2
+                .requestMatchers("/api/admin/v2/auth/login").permitAll()
                 
                 // 🔓 Endpoint fix temporaneo (protetto da FUNKARD_CRON_SECRET nel controller)
                 .requestMatchers("/api/admin/fix/onboarding-column").permitAll()
