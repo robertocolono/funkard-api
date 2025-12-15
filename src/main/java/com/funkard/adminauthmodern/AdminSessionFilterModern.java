@@ -16,13 +16,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
  * 🔐 Filtro moderno per autenticazione admin tramite cookie ADMIN_SESSION
- * NON interferisce con AdminSessionFilter legacy
+ * Sostituisce completamente AdminSessionFilter legacy (disabilitato 2025-12-06)
  * Si attiva solo se esiste cookie ADMIN_SESSION
  */
 @Component
@@ -66,7 +67,7 @@ public class AdminSessionFilterModern extends OncePerRequestFilter {
         
         if (sessionId == null || sessionId.trim().isEmpty()) {
             // Nessun cookie ADMIN_SESSION, continua senza errori
-            // Il legacy AdminSessionFilter gestirà eventualmente admin_session
+            // Il filtro legacy AdminSessionFilter è stato disabilitato (2025-12-06)
             filterChain.doFilter(request, response);
             return;
         }
@@ -125,18 +126,42 @@ public class AdminSessionFilterModern extends OncePerRequestFilter {
     
     /**
      * 🔐 Popola SecurityContext con dati admin
+     * 
+     * Aggiunge ROLE_ADMIN per compatibilità se ruolo è SUPER_ADMIN o SUPERVISOR
+     * (comportamento allineato con filtro legacy AdminSessionFilter)
      */
     private void setSecurityContext(AdminUser admin, HttpServletRequest request) {
-        String role = "ROLE_" + admin.getRole();
-        SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
+        String role = admin.getRole();
+        if (role == null || role.trim().isEmpty()) {
+            logger.warn("⚠️ Admin senza ruolo: {}", admin.getEmail());
+            return;
+        }
+        
+        // Normalizza ruolo a uppercase per sicurezza
+        String normalizedRole = role.toUpperCase();
+        String roleAuthority = "ROLE_" + normalizedRole;
+        
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority(roleAuthority));
+        
+        // Aggiungi ROLE_ADMIN per compatibilità (come filtro legacy)
+        // Garantisce che SUPER_ADMIN e SUPERVISOR abbiano anche ROLE_ADMIN
+        // per compatibilità con endpoint che usano hasAnyRole('ADMIN', 'SUPER_ADMIN')
+        if ("SUPER_ADMIN".equals(normalizedRole) || "SUPERVISOR".equals(normalizedRole)) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            logger.debug("✅ Aggiunto ROLE_ADMIN per compatibilità (ruolo: {})", normalizedRole);
+        }
         
         Authentication authentication = new UsernamePasswordAuthenticationToken(
             admin.getEmail(), // principal
             null, // credentials (non necessario)
-            Collections.singletonList(authority) // authorities
+            authorities // authorities (può contenere ROLE_SUPER_ADMIN + ROLE_ADMIN)
         );
         
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        logger.debug("✅ SecurityContext popolato per admin: {} con authorities: {}", 
+            admin.getEmail(), authorities);
     }
 }
 
