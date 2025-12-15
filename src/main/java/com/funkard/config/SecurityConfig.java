@@ -46,17 +46,14 @@ public class SecurityConfig {
     // Filtro legacy commentato (sostituito da AdminSessionFilterModern)
     // private final AdminSessionFilter adminSessionFilter;
     private final AdminSessionFilterModern adminSessionFilterModern;
-    private final AdminJsonErrorResponseFilter adminJsonErrorResponseFilter;
 
     public SecurityConfig(
             JwtFilter jwtFilter, 
             // AdminSessionFilter adminSessionFilter, // LEGACY - DISABILITATO
-            AdminSessionFilterModern adminSessionFilterModern,
-            AdminJsonErrorResponseFilter adminJsonErrorResponseFilter) {
+            AdminSessionFilterModern adminSessionFilterModern) {
         this.jwtFilter = jwtFilter;
         // this.adminSessionFilter = adminSessionFilter; // LEGACY - DISABILITATO
         this.adminSessionFilterModern = adminSessionFilterModern;
-        this.adminJsonErrorResponseFilter = adminJsonErrorResponseFilter;
     }
 
     @Bean
@@ -67,11 +64,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public AdminJsonErrorResponseFilter adminJsonErrorResponseFilter() {
-        return new AdminJsonErrorResponseFilter();
     }
 
     /**
@@ -206,7 +198,8 @@ public class SecurityConfig {
             
             // 📦 Filtro per garantire risposte JSON sempre (dopo Spring Security)
             // Intercetta tutte le risposte admin e converte plain text in JSON
-            .addFilterAfter(adminJsonErrorResponseFilter, UsernamePasswordAuthenticationFilter.class)
+            // Crea direttamente l'istanza per evitare dipendenza circolare
+            .addFilterAfter(new AdminJsonErrorResponseFilter(), UsernamePasswordAuthenticationFilter.class)
 
             // 📦 Gestione errori 401/403 in formato JSON
             // Garantisce che tutti gli endpoint admin rispondano sempre in JSON,
