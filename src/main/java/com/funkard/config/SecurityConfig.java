@@ -23,6 +23,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -37,6 +39,8 @@ import java.util.Map;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+    
     private final JwtFilter jwtFilter;
     // ⚠️ LEGACY - DISABILITATO 2025-12-06
     // Filtro legacy commentato (sostituito da AdminSessionFilterModern)
@@ -79,6 +83,15 @@ public class SecurityConfig {
                                        HttpServletResponse response, 
                                        HttpStatus status, 
                                        String errorMessage) throws IOException {
+        // Verifica se la risposta è già stata committata
+        if (response.isCommitted()) {
+            logger.warn("⚠️ Risposta già committata, impossibile convertire in JSON per: {}", request.getRequestURI());
+            return;
+        }
+        
+        // Reset del buffer per sovrascrivere eventuali contenuti esistenti
+        response.resetBuffer();
+        
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
@@ -98,6 +111,7 @@ public class SecurityConfig {
         }
 
         mapper.writeValue(response.getWriter(), errorBody);
+        response.flushBuffer();
     }
 
     @Bean
@@ -187,10 +201,14 @@ public class SecurityConfig {
             // anche quando Spring Security blocca la richiesta prima del controller
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
+                    logger.debug("🔐 AuthenticationEntryPoint chiamato per: {} - {}", 
+                        request.getRequestURI(), authException.getMessage());
                     writeJsonErrorResponse(request, response, HttpStatus.UNAUTHORIZED, 
                         "Sessione non valida o scaduta");
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    logger.debug("🚫 AccessDeniedHandler chiamato per: {} - {}", 
+                        request.getRequestURI(), accessDeniedException.getMessage());
                     writeJsonErrorResponse(request, response, HttpStatus.FORBIDDEN, 
                         "FORBIDDEN");
                 })
