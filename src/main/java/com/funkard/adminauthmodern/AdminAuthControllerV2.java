@@ -10,12 +10,16 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * 🔐 Controller v2 per autenticazione admin
  * Namespace: /api/admin/v2/auth
  * Formato response: {success, data, error}
+ * 
+ * ⚠️ IMPORTANTE: Non usare Map.of() con valori null (lancia NPE)
+ * Usare buildResponse() helper per costruire response in modo safe
  */
 @RestController
 @RequestMapping("/api/admin/v2/auth")
@@ -53,11 +57,7 @@ public class AdminAuthControllerV2 {
             if (sessionId == null || sessionId.trim().isEmpty()) {
                 logger.error("❌ SessionId null o vuoto dopo login per: {}", email);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of(
-                            "success", false,
-                            "data", null,
-                            "error", "Errore durante la creazione della sessione"
-                        ));
+                        .body(buildErrorResponse("Errore durante la creazione della sessione"));
             }
             
             // Crea cookie httpOnly (stesso meccanismo v1)
@@ -69,34 +69,18 @@ public class AdminAuthControllerV2 {
             if (adminObj == null) {
                 logger.error("❌ Admin null dopo login per: {}", email);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of(
-                            "success", false,
-                            "data", null,
-                            "error", "Errore durante il recupero dati admin"
-                        ));
+                        .body(buildErrorResponse("Errore durante il recupero dati admin"));
             }
             
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "data", adminObj,
-                "error", null
-            ));
+            return ResponseEntity.ok(buildSuccessResponse(adminObj));
             
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                        "success", false,
-                        "data", null,
-                        "error", e.getMessage()
-                    ));
+                    .body(buildErrorResponse(e.getMessage()));
         } catch (Exception e) {
             logger.error("Errore durante login v2", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                        "success", false,
-                        "data", null,
-                        "error", "Errore durante il login: " + e.getMessage()
-                    ));
+                    .body(buildErrorResponse("Errore durante il login: " + e.getMessage()));
         }
     }
     
@@ -110,41 +94,48 @@ public class AdminAuthControllerV2 {
      */
     @GetMapping("/me")
     public ResponseEntity<?> me(HttpServletRequest request) {
+        logger.warn("🔍 [ME_V2] INIZIO GET /api/admin/v2/auth/me");
+        logger.warn("  - Request URI: {}", request.getRequestURI());
+        logger.warn("  - Request method: {}", request.getMethod());
+        
         try {
+            logger.warn("  - Estraendo sessionId dal cookie...");
             String sessionId = extractSessionId(request);
             
+            logger.warn("  - sessionId estratto: {}", sessionId != null ? (sessionId.length() > 8 ? sessionId.substring(0, 8) + "..." : sessionId) : "NULL");
+            logger.warn("  - sessionId null?: {}", sessionId == null);
+            logger.warn("  - sessionId vuoto?: {}", sessionId != null && sessionId.trim().isEmpty());
+            
             if (sessionId == null || sessionId.trim().isEmpty()) {
+                logger.warn("❌ [ME_V2] RETURN 401: sessionId null o vuoto");
+                logger.warn("    - Motivo: cookie ADMIN_SESSION non presente o vuoto");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of(
-                            "success", false,
-                            "data", null,
-                            "error", "Sessione non valida"
-                        ));
+                        .body(buildErrorResponse("Sessione non valida"));
             }
             
+            logger.warn("  - Chiamando authService.getCurrentAdmin(sessionId)...");
             Map<String, Object> admin = authService.getCurrentAdmin(sessionId);
             
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "data", admin,
-                "error", null
-            ));
+            logger.warn("✅ [ME_V2] RETURN 200: admin recuperato con successo");
+            logger.warn("    - admin.id: {}", admin.get("id"));
+            logger.warn("    - admin.email: {}", admin.get("email"));
+            logger.warn("    - admin.role: {}", admin.get("role"));
+            
+            return ResponseEntity.ok(buildSuccessResponse(admin));
             
         } catch (IllegalArgumentException e) {
+            logger.warn("❌ [ME_V2] RETURN 401: IllegalArgumentException");
+            logger.warn("    - Exception message: {}", e.getMessage());
+            logger.warn("    - Exception class: {}", e.getClass().getName());
+            logger.warn("    - Stack trace:", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(
-                        "success", false,
-                        "data", null,
-                        "error", e.getMessage()
-                    ));
+                    .body(buildErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            logger.error("Errore durante recupero admin corrente v2", e);
+            logger.error("❌ [ME_V2] RETURN 500: Exception non gestita", e);
+            logger.error("    - Exception class: {}", e.getClass().getName());
+            logger.error("    - Exception message: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                        "success", false,
-                        "data", null,
-                        "error", "Errore durante il recupero dati: " + e.getMessage()
-                    ));
+                    .body(buildErrorResponse("Errore durante il recupero dati: " + e.getMessage()));
         }
     }
     
@@ -169,18 +160,62 @@ public class AdminAuthControllerV2 {
      * 🍪 Estrae sessionId dal cookie ADMIN_SESSION
      */
     private String extractSessionId(HttpServletRequest request) {
+        logger.warn("  - [EXTRACT_SESSION_ID] Estraendo cookie ADMIN_SESSION");
         jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+        
+        logger.warn("    - cookies array: {}", cookies != null ? "PRESENT" : "NULL");
+        logger.warn("    - cookies.length: {}", cookies != null ? cookies.length : 0);
+        
         if (cookies == null) {
+            logger.warn("    - ❌ cookies array è NULL");
             return null;
         }
         
-        for (jakarta.servlet.http.Cookie cookie : cookies) {
+        logger.warn("    - Iterando su {} cookies...", cookies.length);
+        for (int i = 0; i < cookies.length; i++) {
+            jakarta.servlet.http.Cookie cookie = cookies[i];
+            logger.warn("    - cookie[{}]: name={}, value={}", 
+                i, 
+                cookie.getName(), 
+                cookie.getValue() != null ? (cookie.getValue().length() > 8 ? cookie.getValue().substring(0, 8) + "..." : cookie.getValue()) : "NULL");
+            
             if ("ADMIN_SESSION".equals(cookie.getName())) {
-                return cookie.getValue();
+                String sessionId = cookie.getValue();
+                logger.warn("    - ✅ Cookie ADMIN_SESSION trovato: {}", 
+                    sessionId != null ? (sessionId.length() > 8 ? sessionId.substring(0, 8) + "..." : sessionId) : "NULL");
+                return sessionId;
             }
         }
         
+        logger.warn("    - ❌ Cookie ADMIN_SESSION non trovato tra {} cookies", cookies.length);
         return null;
+    }
+    
+    /**
+     * 🔧 Helper: costruisce response v2 di successo in modo safe
+     * Non include "error" se null (Map.of() non accetta null)
+     * @param data Dati da includere nella response
+     * @return Map con formato {success: true, data: ...}
+     */
+    private Map<String, Object> buildSuccessResponse(Object data) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", data);
+        // Non inserire "error" se null (Map.of() non accetta null)
+        return response;
+    }
+    
+    /**
+     * 🔧 Helper: costruisce response v2 di errore in modo safe
+     * @param error Messaggio di errore
+     * @return Map con formato {success: false, data: null, error: ...}
+     */
+    private Map<String, Object> buildErrorResponse(String error) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("data", null);
+        response.put("error", error);
+        return response;
     }
 }
 

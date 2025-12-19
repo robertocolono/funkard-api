@@ -73,34 +73,63 @@ public class AdminSessionFilterModern extends OncePerRequestFilter {
         }
         
         // Valida sessione moderna
+        logger.warn("🔍 [FILTER] Validando sessione per path: {}", path);
+        logger.warn("  - sessionId estratto dal cookie: {}", sessionId != null ? (sessionId.length() > 8 ? sessionId.substring(0, 8) + "..." : sessionId) : "NULL");
+        
         Optional<UUID> adminIdOpt = sessionService.validateSession(sessionId);
+        
+        logger.warn("  - validateSession() ritornato: {}", adminIdOpt.isPresent() ? "PRESENT" : "EMPTY");
         
         if (adminIdOpt.isPresent()) {
             UUID adminId = adminIdOpt.get();
+            logger.warn("  - ✅ adminId ottenuto: {}", adminId);
             
             // Carica AdminUser
+            logger.warn("  - Cercando admin nel database...");
             Optional<AdminUser> adminOpt = adminUserRepository.findById(adminId);
+            
+            logger.warn("  - Admin trovato nel DB?: {}", adminOpt.isPresent());
             
             if (adminOpt.isPresent()) {
                 AdminUser admin = adminOpt.get();
+                logger.warn("  - ✅ Admin trovato:");
+                logger.warn("    - admin.id: {}", admin.getId());
+                logger.warn("    - admin.email: {}", admin.getEmail());
+                logger.warn("    - admin.role: {}", admin.getRole());
+                logger.warn("    - admin.active: {}", admin.isActive());
+                logger.warn("    - admin.onboardingCompleted: {}", admin.isOnboardingCompleted());
                 
                 // Verifica che admin sia attivo e onboarding completato
-                if (admin.isActive() && admin.isOnboardingCompleted()) {
+                boolean isActive = admin.isActive();
+                boolean isOnboardingCompleted = admin.isOnboardingCompleted();
+                logger.warn("  - Verificando condizioni per SecurityContext:");
+                logger.warn("    - admin.isActive(): {}", isActive);
+                logger.warn("    - admin.isOnboardingCompleted(): {}", isOnboardingCompleted);
+                logger.warn("    - Condizione totale (active && onboardingCompleted): {}", isActive && isOnboardingCompleted);
+                
+                if (isActive && isOnboardingCompleted) {
                     // Popola SecurityContext con ruoli admin
+                    logger.warn("  - ✅ Condizioni soddisfatte, popolando SecurityContext...");
                     setSecurityContext(admin, request);
                     
-                    logger.debug("✅ Admin autenticato via sessione moderna: {} ({})", 
+                    logger.warn("✅ [FILTER] Admin autenticato via sessione moderna: {} ({})", 
                         admin.getDisplayName() != null ? admin.getDisplayName() : admin.getName(), 
                         admin.getEmail());
                 } else {
-                    logger.debug("⚠️ Admin non attivo o onboarding non completato: {}", adminId);
+                    logger.warn("⚠️ [FILTER] Admin non attivo o onboarding non completato:");
+                    logger.warn("    - admin.id: {}", adminId);
+                    logger.warn("    - admin.active: {}", isActive);
+                    logger.warn("    - admin.onboardingCompleted: {}", isOnboardingCompleted);
+                    logger.warn("    - SecurityContext NON popolato");
                 }
             } else {
-                logger.debug("⚠️ Admin non trovato per sessionId: {}", sessionId.substring(0, 8) + "...");
+                logger.warn("⚠️ [FILTER] Admin non trovato per sessionId: {}", sessionId.substring(0, 8) + "...");
+                logger.warn("    - adminId cercato: {}", adminId);
             }
         } else {
-            logger.debug("🔍 Sessione moderna non valida o scaduta: {}", 
+            logger.warn("🔍 [FILTER] Sessione moderna non valida o scaduta: {}", 
                 sessionId != null && sessionId.length() > 8 ? sessionId.substring(0, 8) + "..." : "null");
+            logger.warn("    - validateSession() ritornato EMPTY (verificare log validateSession)");
         }
         
         filterChain.doFilter(request, response);

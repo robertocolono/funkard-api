@@ -58,47 +58,66 @@ public class AdminSessionServiceModern {
      */
     @Transactional(readOnly = true)
     public Optional<UUID> validateSession(String sessionId) {
+        logger.warn("🔍 [VALIDATE_SESSION] INIZIO validazione sessione");
+        logger.warn("  - sessionId ricevuto: {}", sessionId != null ? (sessionId.length() > 8 ? sessionId.substring(0, 8) + "..." : sessionId) : "NULL");
+        logger.warn("  - sessionId null?: {}", sessionId == null);
+        logger.warn("  - sessionId vuoto?: {}", sessionId != null && sessionId.trim().isEmpty());
+        
         if (sessionId == null || sessionId.trim().isEmpty()) {
+            logger.warn("❌ [VALIDATE_SESSION] RETURN EMPTY: sessionId null o vuoto");
             return Optional.empty();
         }
         
+        logger.warn("  - Cercando sessione nel database...");
         Optional<AdminSession> sessionOpt = sessionRepository.findBySessionId(sessionId);
         
+        logger.warn("  - Sessione trovata nel DB?: {}", sessionOpt.isPresent());
+        
         if (sessionOpt.isEmpty()) {
+            logger.warn("❌ [VALIDATE_SESSION] RETURN EMPTY: sessione non trovata nel database per sessionId={}", 
+                sessionId.substring(0, Math.min(8, sessionId.length())) + "...");
             return Optional.empty();
         }
         
         AdminSession session = sessionOpt.get();
+        logger.warn("  - ✅ Sessione trovata:");
+        logger.warn("    - session.id: {}", session.getId());
+        logger.warn("    - session.adminId: {}", session.getAdminId());
+        logger.warn("    - session.createdAt: {}", session.getCreatedAt());
+        logger.warn("    - session.expiresAt: {}", session.getExpiresAt());
         
         // Verifica scadenza usando Instant (UTC) per eliminare ambiguità timezone
         Instant now = Instant.now();
         Instant expiresAt = session.getExpiresAt();
         boolean isExpired = now.isAfter(expiresAt);
         
-        // 🔍 LOGGING TEMPORANEO PER DEBUG (da rimuovere dopo verifica)
         Duration timeUntilExpiry = Duration.between(now, expiresAt);
         long secondsUntilExpiry = timeUntilExpiry.getSeconds();
         
-        logger.warn("🔍 [DEBUG TIMEZONE] Validazione sessione:");
-        logger.warn("  - sessionId: {}", sessionId.substring(0, 8) + "...");
-        logger.warn("  - now (Instant UTC): {}", now);
-        logger.warn("  - expiresAt (dal DB, UTC): {}", expiresAt);
-        logger.warn("  - isAfter (scaduta): {}", isExpired);
-        logger.warn("  - differenza: {} secondi ({} minuti)", 
+        logger.warn("  - ⏰ Verifica scadenza:");
+        logger.warn("    - now (Instant UTC): {}", now);
+        logger.warn("    - expiresAt (dal DB, UTC): {}", expiresAt);
+        logger.warn("    - now.isAfter(expiresAt): {}", isExpired);
+        logger.warn("    - differenza: {} secondi ({} minuti)", 
             secondsUntilExpiry, secondsUntilExpiry / 60);
         
         if (isExpired) {
             // Sessione scaduta, rimuovila
+            logger.warn("  - ⏰ Sessione SCADUTA - rimuovendo dal database...");
             sessionRepository.deleteBySessionId(sessionId);
-            logger.warn("⏰ Sessione scaduta rimossa: sessionId={}, now={} (UTC), expiresAt={} (UTC)", 
-                sessionId.substring(0, 8) + "...", now, expiresAt);
+            logger.warn("❌ [VALIDATE_SESSION] RETURN EMPTY: sessione scaduta");
+            logger.warn("    - now={} (UTC)", now);
+            logger.warn("    - expiresAt={} (UTC)", expiresAt);
+            logger.warn("    - adminId che sarebbe stato restituito: {}", session.getAdminId());
             return Optional.empty();
         }
         
-        logger.warn("✅ Sessione valida: sessionId={}, now={} (UTC), expiresAt={} (UTC), rimanenti {} secondi", 
-            sessionId.substring(0, 8) + "...", now, expiresAt, secondsUntilExpiry);
+        UUID adminId = session.getAdminId();
+        logger.warn("✅ [VALIDATE_SESSION] RETURN SUCCESS: sessione valida");
+        logger.warn("    - adminId restituito: {}", adminId);
+        logger.warn("    - rimanenti {} secondi ({} minuti)", secondsUntilExpiry, secondsUntilExpiry / 60);
         
-        return Optional.of(session.getAdminId());
+        return Optional.of(adminId);
     }
     
     /**

@@ -56,16 +56,22 @@ public class AdminAuthServiceModern {
      */
     @Transactional
     public Map<String, Object> login(String email, String password) {
+        logger.warn("LOGIN DEBUG — email ricevuta: {}", email);
+        logger.warn("LOGIN DEBUG — password ricevuta: {}", password != null ? "[PRESENTE]" : "[NULL]");
+        
         if (email == null || email.trim().isEmpty()) {
+            logger.warn("LOGIN DEBUG — email vuota o null");
             throw new IllegalArgumentException("Email richiesta");
         }
         
         if (password == null || password.trim().isEmpty()) {
+            logger.warn("LOGIN DEBUG — password vuota o null");
             throw new IllegalArgumentException("Password richiesta");
         }
         
         // Trova admin per email
         Optional<AdminUser> adminOpt = adminUserRepository.findByEmail(email);
+        logger.warn("LOGIN DEBUG — utente trovato: {}", adminOpt.isPresent());
         
         if (adminOpt.isEmpty()) {
             logger.warn("⚠️ Tentativo login con email non trovata: {}", email);
@@ -73,6 +79,14 @@ public class AdminAuthServiceModern {
         }
         
         AdminUser admin = adminOpt.get();
+        logger.warn("LOGIN DEBUG — admin.id: {}", admin.getId());
+        logger.warn("LOGIN DEBUG — admin.active: {}", admin.isActive());
+        logger.warn("LOGIN DEBUG — admin.onboardingCompleted: {}", admin.isOnboardingCompleted());
+        logger.warn("LOGIN DEBUG — admin.passwordHash presente: {}", admin.getPasswordHash() != null && !admin.getPasswordHash().trim().isEmpty());
+        if (admin.getPasswordHash() != null) {
+            logger.warn("LOGIN DEBUG — admin.passwordHash formato: {}", 
+                admin.getPasswordHash().length() > 7 ? admin.getPasswordHash().substring(0, 7) : "TOO_SHORT");
+        }
         
         // Verifica che admin sia attivo e onboarding completato
         if (!admin.isActive()) {
@@ -91,7 +105,10 @@ public class AdminAuthServiceModern {
             throw new IllegalArgumentException("Credenziali non valide");
         }
         
-        if (!passwordEncoder.matches(password, admin.getPasswordHash())) {
+        boolean passwordMatches = passwordEncoder.matches(password, admin.getPasswordHash());
+        logger.warn("LOGIN DEBUG — password combacia: {}", passwordMatches);
+        
+        if (!passwordMatches) {
             logger.warn("⚠️ Password non valida per: {}", email);
             throw new IllegalArgumentException("Credenziali non valide");
         }
@@ -102,10 +119,13 @@ public class AdminAuthServiceModern {
         
         // Crea sessione
         String sessionId = sessionService.createSession(admin.getId());
+        logger.warn("LOGIN DEBUG — sessionId creato: {}", sessionId != null ? sessionId.substring(0, Math.min(8, sessionId.length())) + "..." : "NULL");
         
         logger.info("✅ Login admin moderno riuscito: {} ({})", 
             admin.getDisplayName() != null ? admin.getDisplayName() : admin.getName(), 
             email);
+        
+        logger.warn("LOGIN DEBUG — ritorno success=true");
         
         return Map.of(
             "success", true,
@@ -274,29 +294,63 @@ public class AdminAuthServiceModern {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getCurrentAdmin(String sessionId) {
+        logger.warn("🔍 [GET_CURRENT_ADMIN] INIZIO recupero admin corrente");
+        logger.warn("  - sessionId ricevuto: {}", sessionId != null ? (sessionId.length() > 8 ? sessionId.substring(0, 8) + "..." : sessionId) : "NULL");
+        
         if (sessionId == null || sessionId.trim().isEmpty()) {
+            logger.warn("❌ [GET_CURRENT_ADMIN] THROW IllegalArgumentException: sessionId null o vuoto");
             throw new IllegalArgumentException("Sessione non valida");
         }
         
+        logger.warn("  - Chiamando validateSession()...");
         Optional<UUID> adminIdOpt = sessionService.validateSession(sessionId);
         
+        logger.warn("  - validateSession() ritornato: {}", adminIdOpt.isPresent() ? "PRESENT" : "EMPTY");
+        
         if (adminIdOpt.isEmpty()) {
+            logger.warn("❌ [GET_CURRENT_ADMIN] THROW IllegalArgumentException: validateSession() ritornato empty");
+            logger.warn("    - Motivo: sessione non valida o scaduta (verificare log validateSession)");
             throw new IllegalArgumentException("Sessione non valida o scaduta");
         }
         
         UUID adminId = adminIdOpt.get();
+        logger.warn("  - ✅ adminId ottenuto da validateSession: {}", adminId);
+        logger.warn("  - Cercando admin nel database...");
+        
         Optional<AdminUser> adminOpt = adminUserRepository.findById(adminId);
         
+        logger.warn("  - Admin trovato nel DB?: {}", adminOpt.isPresent());
+        
         if (adminOpt.isEmpty()) {
+            logger.warn("❌ [GET_CURRENT_ADMIN] THROW IllegalArgumentException: admin non trovato");
+            logger.warn("    - adminId cercato: {}", adminId);
             throw new IllegalArgumentException("Admin non trovato");
         }
         
         AdminUser admin = adminOpt.get();
+        logger.warn("  - ✅ Admin trovato:");
+        logger.warn("    - admin.id: {}", admin.getId());
+        logger.warn("    - admin.email: {}", admin.getEmail());
+        logger.warn("    - admin.role: {}", admin.getRole());
+        logger.warn("    - admin.active: {}", admin.isActive());
+        logger.warn("    - admin.onboardingCompleted: {}", admin.isOnboardingCompleted());
+        logger.warn("    - admin.displayName: {}", admin.getDisplayName());
+        logger.warn("    - admin.name: {}", admin.getName());
         
         // Verifica che admin sia attivo
+        logger.warn("  - Verificando admin.isActive()...");
         if (!admin.isActive()) {
+            logger.warn("❌ [GET_CURRENT_ADMIN] THROW IllegalArgumentException: admin non attivo");
+            logger.warn("    - admin.id: {}", admin.getId());
+            logger.warn("    - admin.email: {}", admin.getEmail());
+            logger.warn("    - admin.active: {}", admin.isActive());
             throw new IllegalArgumentException("Account non attivo");
         }
+        
+        logger.warn("✅ [GET_CURRENT_ADMIN] RETURN SUCCESS: admin valido e attivo");
+        logger.warn("    - admin.id: {}", admin.getId());
+        logger.warn("    - admin.email: {}", admin.getEmail());
+        logger.warn("    - admin.role: {}", admin.getRole());
         
         return Map.of(
             "id", admin.getId().toString(),
