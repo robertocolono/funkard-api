@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,10 +23,11 @@ public interface AdminSessionRepository extends JpaRepository<AdminSession, UUID
     
     /**
      * Elimina tutte le sessioni scadute
+     * Usa Instant (UTC) per confronto timezone-safe
      */
     @Modifying
     @Query("DELETE FROM AdminSession s WHERE s.expiresAt < :now")
-    int deleteExpiredSessions(@Param("now") LocalDateTime now);
+    int deleteExpiredSessions(@Param("now") Instant now);
     
     /**
      * Elimina tutte le sessioni di un admin

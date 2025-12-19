@@ -6,7 +6,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,7 @@ import java.util.UUID;
  * 🔐 Service moderno per gestione sessioni admin (database-backed)
  * Durata sessione: 4 ore
  * Cleanup automatico ogni 2 ore
+ * Usa Instant (UTC) per eliminare problemi di timezone
  */
 @Service
 public class AdminSessionServiceModern {
@@ -37,12 +39,12 @@ public class AdminSessionServiceModern {
     @Transactional
     public String createSession(UUID adminId) {
         String sessionId = generateSessionId();
-        LocalDateTime expiresAt = LocalDateTime.now().plusHours(SESSION_DURATION_HOURS);
+        Instant expiresAt = Instant.now().plusSeconds(SESSION_DURATION_HOURS * 3600);
         
         AdminSession session = new AdminSession(sessionId, adminId, expiresAt);
         sessionRepository.save(session);
         
-        logger.info("✅ Sessione admin moderna creata: sessionId={}, adminId={}, expiresAt={}", 
+        logger.info("✅ Sessione admin moderna creata: sessionId={}, adminId={}, expiresAt={} (UTC)", 
             sessionId.substring(0, 8) + "...", adminId, expiresAt);
         
         return sessionId;
@@ -50,6 +52,7 @@ public class AdminSessionServiceModern {
     
     /**
      * 🔍 Valida una sessione e restituisce l'ID dell'admin se valida
+     * Usa Instant (UTC) per confronto timezone-safe
      * @param sessionId ID della sessione
      * @return Optional con adminId se sessione valida, empty altrimenti
      */
@@ -67,13 +70,33 @@ public class AdminSessionServiceModern {
         
         AdminSession session = sessionOpt.get();
         
-        // Verifica scadenza
-        if (LocalDateTime.now().isAfter(session.getExpiresAt())) {
+        // Verifica scadenza usando Instant (UTC) per eliminare ambiguità timezone
+        Instant now = Instant.now();
+        Instant expiresAt = session.getExpiresAt();
+        boolean isExpired = now.isAfter(expiresAt);
+        
+        // 🔍 LOGGING TEMPORANEO PER DEBUG (da rimuovere dopo verifica)
+        Duration timeUntilExpiry = Duration.between(now, expiresAt);
+        long secondsUntilExpiry = timeUntilExpiry.getSeconds();
+        
+        logger.warn("🔍 [DEBUG TIMEZONE] Validazione sessione:");
+        logger.warn("  - sessionId: {}", sessionId.substring(0, 8) + "...");
+        logger.warn("  - now (Instant UTC): {}", now);
+        logger.warn("  - expiresAt (dal DB, UTC): {}", expiresAt);
+        logger.warn("  - isAfter (scaduta): {}", isExpired);
+        logger.warn("  - differenza: {} secondi ({} minuti)", 
+            secondsUntilExpiry, secondsUntilExpiry / 60);
+        
+        if (isExpired) {
             // Sessione scaduta, rimuovila
             sessionRepository.deleteBySessionId(sessionId);
-            logger.debug("⏰ Sessione scaduta rimossa: {}", sessionId.substring(0, 8) + "...");
+            logger.warn("⏰ Sessione scaduta rimossa: sessionId={}, now={} (UTC), expiresAt={} (UTC)", 
+                sessionId.substring(0, 8) + "...", now, expiresAt);
             return Optional.empty();
         }
+        
+        logger.warn("✅ Sessione valida: sessionId={}, now={} (UTC), expiresAt={} (UTC), rimanenti {} secondi", 
+            sessionId.substring(0, 8) + "...", now, expiresAt, secondsUntilExpiry);
         
         return Optional.of(session.getAdminId());
     }
@@ -106,15 +129,16 @@ public class AdminSessionServiceModern {
     
     /**
      * 🧹 Cleanup automatico sessioni scadute (ogni 2 ore)
+     * Usa Instant (UTC) per confronto timezone-safe
      */
     @Scheduled(fixedRate = 2 * 60 * 60 * 1000) // Ogni 2 ore (7200000 ms)
     @Transactional
     public void cleanupExpiredSessions() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         int deleted = sessionRepository.deleteExpiredSessions(now);
         
         if (deleted > 0) {
-            logger.info("🧹 Cleanup sessioni moderne: rimosse {} sessioni scadute", deleted);
+            logger.info("🧹 Cleanup sessioni moderne: rimosse {} sessioni scadute (now={} UTC)", deleted, now);
         }
         
         logger.debug("📊 Sessioni moderne attive: {}", sessionRepository.count());
