@@ -57,6 +57,9 @@ public class AdminNotification {
     @Column(name = "history", columnDefinition = "text")
     private String history;
 
+    @Column(name = "error_context", columnDefinition = "text")
+    private String errorContext;
+
     // === Costruttori ===
     public AdminNotification() {}
 
@@ -115,4 +118,7 @@ public class AdminNotification {
 
     public String getHistory() { return history; }
     public void setHistory(String history) { this.history = history; }
+
+    public String getErrorContext() { return errorContext; }
+    public void setErrorContext(String errorContext) { this.errorContext = errorContext; }
 }

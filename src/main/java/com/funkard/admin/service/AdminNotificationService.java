@@ -6,8 +6,11 @@ import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.repository.AdminNotificationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -109,6 +112,60 @@ public class AdminNotificationService {
         return (v == null || v.isBlank()) ? null : v;
     }
 
+    private Map<String, Object> buildErrorContext(Map<String, Object> metadata) {
+        Map<String, Object> context = new HashMap<>();
+        
+        // Source sempre "backend"
+        context.put("source", "backend");
+        
+        // Recupera request da RequestContextHolder (se disponibile)
+        try {
+            var attrs = RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof ServletRequestAttributes) {
+                HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
+                if (request != null) {
+                    // Endpoint: method + URI
+                    String method = request.getMethod();
+                    String uri = request.getRequestURI();
+                    if (method != null && uri != null) {
+                        context.put("endpoint", method + " " + uri);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Fallback: non aggiungere contesto request se non disponibile
+        }
+        
+        // Aggiungi metadata passati (service, action, ecc.)
+        if (metadata != null) {
+            if (metadata.containsKey("service")) {
+                context.put("service", metadata.get("service"));
+            }
+            if (metadata.containsKey("action")) {
+                context.put("action", metadata.get("action"));
+            }
+            // Aggiungi altri campi metadata se presenti
+            for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+                if (!context.containsKey(entry.getKey()) && 
+                    !entry.getKey().equals("service") && 
+                    !entry.getKey().equals("action")) {
+                    context.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        
+        // Environment
+        String env = System.getenv("ENVIRONMENT");
+        if (env == null || env.isBlank()) {
+            env = System.getProperty("spring.profiles.active", "production");
+        }
+        if (env != null && !env.isBlank()) {
+            context.put("environment", env);
+        }
+        
+        return context.isEmpty() ? null : context;
+    }
+
     // === SSE Broadcasting ===
     public SseEmitter subscribe() {
         SseEmitter emitter = new SseEmitter(0L); // infinito
@@ -121,12 +178,29 @@ public class AdminNotificationService {
     }
 
     public void createAdminNotification(String title, String message, String priority, String type) {
+        createAdminNotification(title, message, priority, type, null);
+    }
+
+    public void createAdminNotification(String title, String message, String priority, String type, Map<String, Object> errorContext) {
         AdminNotification n = new AdminNotification();
         n.setTitle(title);
         n.setMessage(message);
         n.setPriority(priority);
         n.setType(type);
         n.setRead(false);
+        
+        // Salva errorContext solo per notifiche system/error|warn
+        if (errorContext != null && "system".equals(type) && ("error".equals(priority) || "warn".equals(priority))) {
+            try {
+                n.setErrorContext(mapper.writeValueAsString(errorContext));
+            } catch (Exception e) {
+                // Fallback: non salvare contesto se serializzazione fallisce
+                n.setErrorContext(null);
+            }
+        } else {
+            n.setErrorContext(null);
+        }
+        
         AdminNotification saved = repo.save(n);
 
         broadcast(saved); // 🚀 invia live agli admin
@@ -154,7 +228,8 @@ public class AdminNotificationService {
     }
 
     public void systemError(String title, String message, Map<String, Object> metadata) {
-        createAdminNotification(title, message, "error", "system");
+        Map<String, Object> errorContext = buildErrorContext(metadata);
+        createAdminNotification(title, message, "error", "system", errorContext);
     }
 
     public void gradingEvent(String title, String message, Map<String, Object> metadata) {
@@ -167,7 +242,8 @@ public class AdminNotificationService {
     }
 
     public void systemWarn(String title, String message, Map<String, Object> metadata) {
-        createAdminNotification(title, message, "warn", "system");
+        Map<String, Object> errorContext = buildErrorContext(metadata);
+        createAdminNotification(title, message, "warn", "system", errorContext);
     }
 
     // Metodo resolve con firma corretta per compatibilità
@@ -187,6 +263,8 @@ public class AdminNotificationService {
 
 
     // Metodo di supporto per creare notifiche
+    // Metodo privato non utilizzato localmente ma potrebbe essere usato via reflection o in futuro
+    @SuppressWarnings("unused")
     private void createNotification(String type, String title, String message, Map<String, ?> data) {
         var notif = new AdminNotification();
         notif.setType(type);

@@ -1,12 +1,12 @@
 package com.funkard.common;
 
 import com.funkard.admin.service.AdminNotificationService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -46,13 +46,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<?> handleRuntime(RuntimeException ex) {
+    public ResponseEntity<?> handleRuntime(RuntimeException ex, HttpServletRequest request) {
         notifications.systemError("Errore runtime backend", ex.getMessage(), Map.of());
         return ResponseEntity.internalServerError().body(Map.of("error", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleGeneric(Exception ex) {
+    public ResponseEntity<?> handleGeneric(Exception ex, HttpServletRequest request) {
         notifications.systemError("Errore generico sistema", ex.getMessage(), Map.of());
         return ResponseEntity.internalServerError().body(Map.of("error", "Errore interno del server"));
     }
