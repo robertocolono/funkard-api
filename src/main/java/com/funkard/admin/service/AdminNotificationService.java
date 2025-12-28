@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.funkard.admin.model.AdminNotification;
 import com.funkard.admin.repository.AdminNotificationRepository;
+import com.funkard.admin.service.HumanReadableNumberService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -22,9 +23,11 @@ public class AdminNotificationService {
     private final AdminNotificationRepository repo;
     private final ObjectMapper mapper = new ObjectMapper();
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private final HumanReadableNumberService numberService;
 
-    public AdminNotificationService(AdminNotificationRepository repo) {
+    public AdminNotificationService(AdminNotificationRepository repo, HumanReadableNumberService numberService) {
         this.repo = repo;
+        this.numberService = numberService;
     }
 
     public List<AdminNotification> listActiveChrono() {
@@ -199,6 +202,19 @@ public class AdminNotificationService {
             }
         } else {
             n.setErrorContext(null);
+        }
+        
+        // Genera numero umano (solo per system/error|warn)
+        String prefix = numberService.determinePrefixForNotification(type, priority);
+        if (prefix != null) {
+            try {
+                String humanNumber = numberService.generateHumanReadableNumber(prefix);
+                n.setHumanReadableNumber(humanNumber);
+            } catch (Exception e) {
+                // Fallback: non bloccare creazione notifica se generazione numero fallisce
+                // Log warning già gestito in HumanReadableNumberService
+                n.setHumanReadableNumber(null);
+            }
         }
         
         AdminNotification saved = repo.save(n);

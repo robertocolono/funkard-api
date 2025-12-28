@@ -60,6 +60,9 @@ public class AdminNotification {
     @Column(name = "error_context", columnDefinition = "text")
     private String errorContext;
 
+    @Column(name = "human_readable_number", length = 15)
+    private String humanReadableNumber;
+
     // === Costruttori ===
     public AdminNotification() {}
 
@@ -121,4 +124,7 @@ public class AdminNotification {
 
     public String getErrorContext() { return errorContext; }
     public void setErrorContext(String errorContext) { this.errorContext = errorContext; }
+
+    public String getHumanReadableNumber() { return humanReadableNumber; }
+    public void setHumanReadableNumber(String humanReadableNumber) { this.humanReadableNumber = humanReadableNumber; }
 }
