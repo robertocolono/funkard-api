@@ -17,7 +17,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,14 +43,35 @@ public class ListingController {
     private final CurrencyConversionService currencyConversionService;
 
     @GetMapping
-    @Cacheable(value = "marketplace:filters", key = "'all'")
-    public List<ListingDTO> getAllListings(Authentication authentication) {
-        List<Listing> listings = service.getAll();
+    @Cacheable(value = "marketplace:filters", key = "#category != null ? #category.toUpperCase() : 'all'")
+    public ResponseEntity<?> getAllListings(
+            @RequestParam(required = false) String category,
+            Authentication authentication) {
+        
+        List<Listing> listings;
+        
+        if (category != null && !category.trim().isEmpty()) {
+            try {
+                // Normalizza a uppercase per case-insensitive
+                String normalizedCategory = category.trim().toUpperCase();
+                listings = service.findByCategory(normalizedCategory);
+            } catch (IllegalArgumentException e) {
+                // Category non valida → HTTP 400
+                log.warn("Category non valida: {}", category);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+            }
+        } else {
+            listings = service.getAll();
+        }
+        
         String targetCurrency = getTargetCurrency(authentication);
         
-        return listings.stream()
+        List<ListingDTO> dtos = listings.stream()
             .map(listing -> toListingDTO(listing, targetCurrency))
             .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(dtos);
     }
 
     /**
@@ -85,8 +105,8 @@ public class ListingController {
             listing.setPrice(request.getPrice());
             listing.setCondition(request.getCondition());
             
-            // TODO: Impostare seller da userId
-            // listing.setSeller(userId.toString());
+            // Imposta seller da userId
+            listing.setSeller(userId.toString());
             
             // Crea listing con gestione valori "Altro"
             Listing created = service.create(listing, request, userId);
@@ -154,6 +174,11 @@ public class ListingController {
         dto.setCreatedAt(null); // Listing entity non ha createdAt, lasciare null
         dto.setSellerId(listing.getSeller());
         dto.setCardId(listing.getCard() != null ? listing.getCard().getId().toString() : null);
+        
+        // Popola category da Card
+        dto.setCategory(listing.getCard() != null && listing.getCard().getCategory() != null
+            ? listing.getCard().getCategory()
+            : null);
         
         // Calcola convertedPrice e convertedCurrency
         if (listing.getPrice() != null && listing.getCurrency() != null) {

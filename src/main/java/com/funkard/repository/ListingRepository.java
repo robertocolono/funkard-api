@@ -2,6 +2,16 @@ package com.funkard.repository;
 
 import com.funkard.model.Listing;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.List;
 
 public interface ListingRepository extends JpaRepository<Listing, Long> {
+    
+    /**
+     * 🔍 Filtra listing per category della Card associata
+     * Join implicito: Listing.card → Card.category
+     */
+    @Query("SELECT l FROM Listing l WHERE l.card.category = :category")
+    List<Listing> findByCardCategory(@Param("category") String category);
 }

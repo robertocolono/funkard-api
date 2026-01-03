@@ -25,4 +25,9 @@ public class ListingDTO {
     private LocalDateTime createdAt;
     private String sellerId;
     private String cardId;
+    
+    /**
+     * 📂 Categoria della Card associata (TCG, SPORT, ENTERTAINMENT, VINTAGE)
+     */
+    private String category;
 }

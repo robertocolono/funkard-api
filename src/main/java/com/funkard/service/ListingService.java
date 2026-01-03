@@ -22,6 +22,39 @@ public class ListingService {
     }
 
     /**
+     * 🔍 Trova listing filtrati per category della Card associata
+     * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
+     * @return Lista di listing con Card.category = category
+     * @throws IllegalArgumentException se category non è valida
+     */
+    public List<Listing> findByCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category non può essere vuota");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedCategory = category.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!isValidCategory(normalizedCategory)) {
+            throw new IllegalArgumentException("Categoria non valida: " + category + 
+                ". Valori ammessi: TCG, SPORT, ENTERTAINMENT, VINTAGE");
+        }
+        
+        return repo.findByCardCategory(normalizedCategory);
+    }
+
+    /**
+     * ✅ Valida se category è uno dei valori ammessi
+     */
+    private boolean isValidCategory(String category) {
+        return "TCG".equals(category) || 
+               "SPORT".equals(category) || 
+               "ENTERTAINMENT".equals(category) || 
+               "VINTAGE".equals(category);
+    }
+
+    /**
      * 📝 Crea listing con gestione valori personalizzati "Altro"
      */
     @Transactional
