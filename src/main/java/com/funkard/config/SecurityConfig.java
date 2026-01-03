@@ -1,17 +1,11 @@
 package com.funkard.config;
 
-// ⚠️ LEGACY - DISABILITATO 2025-12-06
-// import com.funkard.adminauth.AdminSessionFilter; // Filtro legacy commentato
+import com.funkard.adminauth.AdminSessionFilter;
 import com.funkard.adminauthmodern.AdminSessionFilterModern;
 import com.funkard.security.JwtFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -23,36 +17,28 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
-    
     private final JwtFilter jwtFilter;
-    // ⚠️ LEGACY - DISABILITATO 2025-12-06
-    // Filtro legacy commentato (sostituito da AdminSessionFilterModern)
-    // private final AdminSessionFilter adminSessionFilter;
+    private final AdminSessionFilter adminSessionFilter;
     private final AdminSessionFilterModern adminSessionFilterModern;
 
     public SecurityConfig(
             JwtFilter jwtFilter, 
-            // AdminSessionFilter adminSessionFilter, // LEGACY - DISABILITATO
+            AdminSessionFilter adminSessionFilter,
             AdminSessionFilterModern adminSessionFilterModern) {
         this.jwtFilter = jwtFilter;
-        // this.adminSessionFilter = adminSessionFilter; // LEGACY - DISABILITATO
+        this.adminSessionFilter = adminSessionFilter;
         this.adminSessionFilterModern = adminSessionFilterModern;
     }
 
@@ -66,54 +52,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * 🔧 Helper: determina se la richiesta è per endpoint v2
-     */
-    private boolean isV2Endpoint(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path != null && path.contains("/v2/");
-    }
-
-    /**
-     * 🔧 Helper: crea risposta JSON per errori 401/403
-     * Formato v2: {"success": false, "data": null, "error": "..."}
-     * Formato v1: {"error": "..."}
-     */
-    private void writeJsonErrorResponse(HttpServletRequest request, 
-                                       HttpServletResponse response, 
-                                       HttpStatus status, 
-                                       String errorMessage) throws IOException {
-        // Verifica se la risposta è già stata committata
-        if (response.isCommitted()) {
-            logger.warn("⚠️ Risposta già committata, impossibile convertire in JSON per: {}", request.getRequestURI());
-            return;
-        }
-        
-        // Reset del buffer per sovrascrivere eventuali contenuti esistenti
-        response.resetBuffer();
-        
-        response.setStatus(status.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
-
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> errorBody;
-
-        if (isV2Endpoint(request)) {
-            // Formato v2
-            errorBody = new HashMap<>();
-            errorBody.put("success", false);
-            errorBody.put("data", null);
-            errorBody.put("error", errorMessage);
-        } else {
-            // Formato v1 (retrocompatibilità)
-            errorBody = Map.of("error", errorMessage);
-        }
-
-        mapper.writeValue(response.getWriter(), errorBody);
-        response.flushBuffer();
-    }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -123,7 +61,7 @@ public class SecurityConfig {
             "https://www.funkard.com",
             "https://funkard.com",
             "https://admin.funkard.com",
-            "https://funkard-adminreal.vercel.app",
+            "https://funkard-frontend-realone.vercel.app",
             "http://localhost:3000",
             "http://localhost:3002"
         ));
@@ -172,8 +110,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/auth/token-check").permitAll()
                 .requestMatchers("/api/admin/auth/onboarding-complete").permitAll()
                 .requestMatchers("/api/admin/auth/login").permitAll()
-                // 🔓 Endpoint pubblici admin v2
-                .requestMatchers("/api/admin/v2/auth/login").permitAll()
                 
                 // 🔓 Endpoint fix temporaneo (protetto da FUNKARD_CRON_SECRET nel controller)
                 .requestMatchers("/api/admin/fix/onboarding-column").permitAll()
@@ -190,34 +126,10 @@ public class SecurityConfig {
             )
 
             // 🔐 Aggiunge filtri sessioni admin
-            // Il filtro moderno gestisce ADMIN_SESSION (cookie maiuscolo, database-backed)
-            // ⚠️ Filtro legacy (admin_session, in-memory) DISABILITATO 2025-12-06
-            // Ordine: moderno → UsernamePasswordAuthenticationFilter
+            // Il filtro moderno gestisce ADMIN_SESSION, il legacy gestisce admin_session
+            // Ordine: moderno → legacy → UsernamePasswordAuthenticationFilter
             .addFilterBefore(adminSessionFilterModern, UsernamePasswordAuthenticationFilter.class)
-            // .addFilterBefore(adminSessionFilter, UsernamePasswordAuthenticationFilter.class) // LEGACY - DISABILITATO
-            
-            // 📦 Filtro per garantire risposte JSON sempre (dopo Spring Security)
-            // Intercetta tutte le risposte admin e converte plain text in JSON
-            // Crea direttamente l'istanza per evitare dipendenza circolare
-            .addFilterAfter(new AdminJsonErrorResponseFilter(), UsernamePasswordAuthenticationFilter.class)
-
-            // 📦 Gestione errori 401/403 in formato JSON
-            // Garantisce che tutti gli endpoint admin rispondano sempre in JSON,
-            // anche quando Spring Security blocca la richiesta prima del controller
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    logger.debug("🔐 AuthenticationEntryPoint chiamato per: {} - {}", 
-                        request.getRequestURI(), authException.getMessage());
-                    writeJsonErrorResponse(request, response, HttpStatus.UNAUTHORIZED, 
-                        "Sessione non valida o scaduta");
-                })
-                .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    logger.debug("🚫 AccessDeniedHandler chiamato per: {} - {}", 
-                        request.getRequestURI(), accessDeniedException.getMessage());
-                    writeJsonErrorResponse(request, response, HttpStatus.FORBIDDEN, 
-                        "FORBIDDEN");
-                })
-            )
+            .addFilterBefore(adminSessionFilter, UsernamePasswordAuthenticationFilter.class)
 
             // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
@@ -306,35 +218,6 @@ public class SecurityConfig {
 
             // 🔐 Aggiunge filtro JWT prima dell'autenticazione base
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-
-            // 📦 Gestione errori 401/403 in formato JSON (solo per endpoint admin)
-            // Garantisce che gli endpoint admin gestiti da questa chain rispondano sempre in JSON
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    // Applica solo agli endpoint admin
-                    if (request.getRequestURI() != null && request.getRequestURI().startsWith("/api/admin/")) {
-                        writeJsonErrorResponse(request, response, HttpStatus.UNAUTHORIZED, 
-                            "Sessione non valida o scaduta");
-                    } else {
-                        // Per altri endpoint, comportamento default (potrebbe essere gestito da GlobalExceptionHandler)
-                        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.getWriter().write("{\"error\":\"Unauthorized\"}");
-                    }
-                })
-                .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    // Applica solo agli endpoint admin
-                    if (request.getRequestURI() != null && request.getRequestURI().startsWith("/api/admin/")) {
-                        writeJsonErrorResponse(request, response, HttpStatus.FORBIDDEN, 
-                            "FORBIDDEN");
-                    } else {
-                        // Per altri endpoint, comportamento default
-                        response.setStatus(HttpStatus.FORBIDDEN.value());
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.getWriter().write("{\"error\":\"Forbidden\"}");
-                    }
-                })
-            )
 
             // ❌ Disabilita form login e basic auth HTML
             .formLogin(AbstractHttpConfigurer::disable)
