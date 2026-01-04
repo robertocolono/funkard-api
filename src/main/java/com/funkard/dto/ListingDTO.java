@@ -30,4 +30,9 @@ public class ListingDTO {
      * 📂 Categoria della Card associata (TCG, SPORT, ENTERTAINMENT, VINTAGE)
      */
     private String category;
+    
+    /**
+     * 📦 Tipo della Card associata (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     */
+    private String type;
 }

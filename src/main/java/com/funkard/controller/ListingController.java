@@ -43,26 +43,36 @@ public class ListingController {
     private final CurrencyConversionService currencyConversionService;
 
     @GetMapping
-    @Cacheable(value = "marketplace:filters", key = "#category != null ? #category.toUpperCase() : 'all'")
+    @Cacheable(value = "marketplace:filters", 
+        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + (#type != null ? #type.toUpperCase() : 'ALL')")
     public ResponseEntity<?> getAllListings(
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String type,
             Authentication authentication) {
         
         List<Listing> listings;
         
-        if (category != null && !category.trim().isEmpty()) {
-            try {
-                // Normalizza a uppercase per case-insensitive
-                String normalizedCategory = category.trim().toUpperCase();
-                listings = service.findByCategory(normalizedCategory);
-            } catch (IllegalArgumentException e) {
-                // Category non valida → HTTP 400
-                log.warn("Category non valida: {}", category);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+        try {
+            // Gestione filtri combinati
+            if (category != null && !category.trim().isEmpty() && 
+                type != null && !type.trim().isEmpty()) {
+                // Filtra per entrambi (AND)
+                listings = service.findByCategoryAndType(category, type);
+            } else if (category != null && !category.trim().isEmpty()) {
+                // Filtra solo per category
+                listings = service.findByCategory(category);
+            } else if (type != null && !type.trim().isEmpty()) {
+                // Filtra solo per type
+                listings = service.findByType(type);
+            } else {
+                // Nessun filtro
+                listings = service.getAll();
             }
-        } else {
-            listings = service.getAll();
+        } catch (IllegalArgumentException e) {
+            // Validazione fallita → HTTP 400
+            log.warn("Filtro non valido: category={}, type={}, error={}", category, type, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
         }
         
         String targetCurrency = getTargetCurrency(authentication);
@@ -174,11 +184,8 @@ public class ListingController {
         dto.setCreatedAt(null); // Listing entity non ha createdAt, lasciare null
         dto.setSellerId(listing.getSeller());
         dto.setCardId(listing.getCard() != null ? listing.getCard().getId().toString() : null);
-        
-        // Popola category da Card
-        dto.setCategory(listing.getCard() != null && listing.getCard().getCategory() != null
-            ? listing.getCard().getCategory()
-            : null);
+        dto.setCategory(listing.getCard() != null ? listing.getCard().getCategory() : null);
+        dto.setType(listing.getCard() != null ? listing.getCard().getType() : null);
         
         // Calcola convertedPrice e convertedCurrency
         if (listing.getPrice() != null && listing.getCurrency() != null) {

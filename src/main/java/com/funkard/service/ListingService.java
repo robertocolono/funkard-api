@@ -1,5 +1,6 @@
 package com.funkard.service;
 
+import com.funkard.config.SupportedCardTypes;
 import com.funkard.dto.CreateListingRequest;
 import com.funkard.model.Listing;
 import com.funkard.model.PendingValue;
@@ -52,6 +53,61 @@ public class ListingService {
                "SPORT".equals(category) || 
                "ENTERTAINMENT".equals(category) || 
                "VINTAGE".equals(category);
+    }
+
+    /**
+     * 🔍 Trova listing filtrati per type della Card associata
+     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * @return Lista di listing con Card.type = type
+     * @throws IllegalArgumentException se type non è valido
+     */
+    public List<Listing> findByType(String type) {
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Type non può essere vuoto");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedType = type.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!SupportedCardTypes.isValid(normalizedType)) {
+            throw new IllegalArgumentException("Tipo non valido: " + type + 
+                ". Valori ammessi: " + SupportedCardTypes.getSupportedTypesAsString());
+        }
+        
+        return repo.findByCardType(normalizedType);
+    }
+
+    /**
+     * 🔍 Trova listing filtrati per category e type della Card associata
+     * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
+     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * @return Lista di listing con Card.category = category AND Card.type = type
+     * @throws IllegalArgumentException se category o type non sono validi
+     */
+    public List<Listing> findByCategoryAndType(String category, String type) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category non può essere vuota");
+        }
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Type non può essere vuoto");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedCategory = category.trim().toUpperCase();
+        String normalizedType = type.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!isValidCategory(normalizedCategory)) {
+            throw new IllegalArgumentException("Categoria non valida: " + category + 
+                ". Valori ammessi: TCG, SPORT, ENTERTAINMENT, VINTAGE");
+        }
+        if (!SupportedCardTypes.isValid(normalizedType)) {
+            throw new IllegalArgumentException("Tipo non valido: " + type + 
+                ". Valori ammessi: " + SupportedCardTypes.getSupportedTypesAsString());
+        }
+        
+        return repo.findByCardCategoryAndType(normalizedCategory, normalizedType);
     }
 
     /**
