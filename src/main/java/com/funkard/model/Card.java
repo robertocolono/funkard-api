@@ -35,7 +35,7 @@ public class Card {
     private String language; // es: "Italiano", "Inglese", "Giapponese"
     
     /**
-     * 📦 Tipo della Card (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * 📦 Tipo della Card (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
      */
     @Column(length = 50)
     private String type;

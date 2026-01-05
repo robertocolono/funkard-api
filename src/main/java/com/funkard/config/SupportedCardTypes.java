@@ -21,7 +21,7 @@ public final class SupportedCardTypes {
     }
     
     /**
-     * ✅ Set di tutti i tipi supportati (7 tipi)
+     * ✅ Set di tutti i tipi supportati (8 tipi)
      * 
      * Utilizzato per validazioni rapide (contains check).
      */
@@ -29,6 +29,7 @@ public final class SupportedCardTypes {
         "SINGLE_CARD",
         "SEALED_BOX",
         "BOOSTER_PACK",
+        "CASE",
         "STARTER_DECK",
         "COMPLETE_SET",
         "PROMO",
@@ -36,7 +37,7 @@ public final class SupportedCardTypes {
     );
     
     /**
-     * 📋 Lista ordinata di tutti i tipi supportati (7 tipi)
+     * 📋 Lista ordinata di tutti i tipi supportati (8 tipi)
      * 
      * Utilizzato per iterazioni ordinate, messaggi di errore e validazioni dinamiche.
      * Ordine stabile e non modificabile.
@@ -45,6 +46,7 @@ public final class SupportedCardTypes {
         "SINGLE_CARD",
         "SEALED_BOX",
         "BOOSTER_PACK",
+        "CASE",
         "STARTER_DECK",
         "COMPLETE_SET",
         "PROMO",
@@ -54,7 +56,7 @@ public final class SupportedCardTypes {
     /**
      * ✅ Verifica se un tipo è supportato
      * 
-     * @param type Tipo di Card (es. "SINGLE_CARD", "SEALED_BOX")
+     * @param type Tipo di Card (es. "SINGLE_CARD", "SEALED_BOX", "CASE")
      * @return true se il tipo è supportato, false altrimenti
      */
     public static boolean isValid(String type) {

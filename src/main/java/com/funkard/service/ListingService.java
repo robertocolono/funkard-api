@@ -57,7 +57,7 @@ public class ListingService {
 
     /**
      * 🔍 Trova listing filtrati per type della Card associata
-     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
      * @return Lista di listing con Card.type = type
      * @throws IllegalArgumentException se type non è valido
      */
@@ -81,7 +81,7 @@ public class ListingService {
     /**
      * 🔍 Trova listing filtrati per category e type della Card associata
      * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
-     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
      * @return Lista di listing con Card.category = category AND Card.type = type
      * @throws IllegalArgumentException se category o type non sono validi
      */
