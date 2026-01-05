@@ -21,15 +21,19 @@ public final class SupportedCardTypes {
     }
     
     /**
-     * ✅ Set di tutti i tipi supportati (8 tipi)
+     * ✅ Set di tutti i tipi supportati (9 tipi)
      * 
      * Utilizzato per validazioni rapide (contains check).
+     * 
+     * Note: SEALED_BOX è mantenuto come legacy per retrocompatibilità.
+     * BOX è il nuovo tipo standard (concettualmente identico a CASE).
      */
     public static final Set<String> SUPPORTED_TYPES = Set.of(
         "SINGLE_CARD",
-        "SEALED_BOX",
+        "SEALED_BOX",  // Legacy - mantenuto per retrocompatibilità
         "BOOSTER_PACK",
         "CASE",
+        "BOX",         // Nuovo tipo standard
         "STARTER_DECK",
         "COMPLETE_SET",
         "PROMO",
@@ -37,16 +41,19 @@ public final class SupportedCardTypes {
     );
     
     /**
-     * 📋 Lista ordinata di tutti i tipi supportati (8 tipi)
+     * 📋 Lista ordinata di tutti i tipi supportati (9 tipi)
      * 
      * Utilizzato per iterazioni ordinate, messaggi di errore e validazioni dinamiche.
      * Ordine stabile e non modificabile.
+     * 
+     * Note: SEALED_BOX è mantenuto come legacy per retrocompatibilità.
      */
     public static final List<String> ORDERED = List.of(
         "SINGLE_CARD",
-        "SEALED_BOX",
+        "SEALED_BOX",  // Legacy
         "BOOSTER_PACK",
         "CASE",
+        "BOX",         // Nuovo tipo standard
         "STARTER_DECK",
         "COMPLETE_SET",
         "PROMO",
@@ -56,8 +63,10 @@ public final class SupportedCardTypes {
     /**
      * ✅ Verifica se un tipo è supportato
      * 
-     * @param type Tipo di Card (es. "SINGLE_CARD", "SEALED_BOX", "CASE")
+     * @param type Tipo di Card (es. "SINGLE_CARD", "SEALED_BOX", "CASE", "BOX")
      * @return true se il tipo è supportato, false altrimenti
+     * 
+     * Note: SEALED_BOX è accettato come legacy per retrocompatibilità.
      */
     public static boolean isValid(String type) {
         if (type == null || type.trim().isEmpty()) {

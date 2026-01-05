@@ -32,7 +32,9 @@ public class ListingDTO {
     private String category;
     
     /**
-     * 📦 Tipo della Card associata (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * 📦 Tipo della Card associata (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * 
+     * Note: SEALED_BOX è mantenuto come legacy per retrocompatibilità.
      */
     private String type;
 }

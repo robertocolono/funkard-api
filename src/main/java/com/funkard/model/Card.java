@@ -35,7 +35,10 @@ public class Card {
     private String language; // es: "Italiano", "Inglese", "Giapponese"
     
     /**
-     * 📦 Tipo della Card (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * 📦 Tipo della Card (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * 
+     * Note: SEALED_BOX è mantenuto come legacy per retrocompatibilità.
+     * BOX è il nuovo tipo standard (concettualmente identico a CASE).
      */
     @Column(length = 50)
     private String type;
