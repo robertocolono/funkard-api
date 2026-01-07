@@ -37,4 +37,11 @@ public class ListingDTO {
      * Note: SEALED_BOX è mantenuto come legacy per retrocompatibilità.
      */
     private String type;
+    
+    /**
+     * 📋 Condizione della carta (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * 
+     * Note: Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
+     */
+    private String condition;
 }
