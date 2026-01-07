@@ -48,29 +48,45 @@ public class ListingController {
     public ResponseEntity<?> getAllListings(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) String condition,
             Authentication authentication) {
         
         List<Listing> listings;
         
         try {
-            // Gestione filtri combinati
-            if (category != null && !category.trim().isEmpty() && 
-                type != null && !type.trim().isEmpty()) {
-                // Filtra per entrambi (AND)
+            // Gestione filtri combinati (category, type, condition)
+            boolean hasCategory = category != null && !category.trim().isEmpty();
+            boolean hasType = type != null && !type.trim().isEmpty();
+            boolean hasCondition = condition != null && !condition.trim().isEmpty();
+            
+            if (hasCategory && hasType && hasCondition) {
+                // Filtra per tutti e tre (AND)
+                listings = service.findByCategoryAndTypeAndCondition(category, type, condition);
+            } else if (hasCategory && hasType) {
+                // Filtra per category e type
                 listings = service.findByCategoryAndType(category, type);
-            } else if (category != null && !category.trim().isEmpty()) {
+            } else if (hasCategory && hasCondition) {
+                // Filtra per category e condition
+                listings = service.findByCategoryAndCondition(category, condition);
+            } else if (hasType && hasCondition) {
+                // Filtra per type e condition
+                listings = service.findByTypeAndCondition(type, condition);
+            } else if (hasCategory) {
                 // Filtra solo per category
                 listings = service.findByCategory(category);
-            } else if (type != null && !type.trim().isEmpty()) {
+            } else if (hasType) {
                 // Filtra solo per type
                 listings = service.findByType(type);
+            } else if (hasCondition) {
+                // Filtra solo per condition
+                listings = service.findByCondition(condition);
             } else {
                 // Nessun filtro
                 listings = service.getAll();
             }
         } catch (IllegalArgumentException e) {
             // Validazione fallita → HTTP 400
-            log.warn("Filtro non valido: category={}, type={}, error={}", category, type, e.getMessage());
+            log.warn("Filtro non valido: category={}, type={}, condition={}, error={}", category, type, condition, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
         }
@@ -186,6 +202,7 @@ public class ListingController {
         dto.setCardId(listing.getCard() != null ? listing.getCard().getId().toString() : null);
         dto.setCategory(listing.getCard() != null ? listing.getCard().getCategory() : null);
         dto.setType(listing.getCard() != null ? listing.getCard().getType() : null);
+        dto.setCondition(listing.getCondition());
         
         // Calcola convertedPrice e convertedCurrency
         if (listing.getPrice() != null && listing.getCurrency() != null) {
