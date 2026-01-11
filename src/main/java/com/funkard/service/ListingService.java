@@ -115,6 +115,200 @@ public class ListingService {
     }
 
     /**
+     * 🔍 Trova listing filtrati per condition
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @return Lista di listing con Listing.condition = condition
+     * @throws IllegalArgumentException se condition non è valida
+     */
+    public List<Listing> findByCondition(String condition) {
+        if (condition == null || condition.trim().isEmpty()) {
+            throw new IllegalArgumentException("Condition non può essere vuota");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedCondition = condition.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!isValidCondition(normalizedCondition)) {
+            throw new IllegalArgumentException("Condizione non valida: " + condition + 
+                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR");
+        }
+        
+        return repo.findByCondition(normalizedCondition);
+    }
+
+    /**
+     * ✅ Valida se condition è uno dei valori ammessi
+     */
+    private boolean isValidCondition(String condition) {
+        return "RAW".equals(condition) ||
+               "MINT".equals(condition) ||
+               "NEAR_MINT".equals(condition) ||
+               "EXCELLENT".equals(condition) ||
+               "VERY_GOOD".equals(condition) ||
+               "GOOD".equals(condition) ||
+               "FAIR".equals(condition) ||
+               "POOR".equals(condition);
+        // ⚠️ PLAYED è ESPLICITAMENTE ESCLUSO
+    }
+
+    /**
+     * 🔍 Trova listing filtrati per category e condition
+     * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @return Lista di listing con Card.category = category AND Listing.condition = condition
+     * @throws IllegalArgumentException se category o condition non sono validi
+     */
+    public List<Listing> findByCategoryAndCondition(String category, String condition) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category non può essere vuota");
+        }
+        if (condition == null || condition.trim().isEmpty()) {
+            throw new IllegalArgumentException("Condition non può essere vuota");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedCategory = category.trim().toUpperCase();
+        String normalizedCondition = condition.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!isValidCategory(normalizedCategory)) {
+            throw new IllegalArgumentException("Categoria non valida: " + category + 
+                ". Valori ammessi: TCG, SPORT, ENTERTAINMENT, VINTAGE");
+        }
+        if (!isValidCondition(normalizedCondition)) {
+            throw new IllegalArgumentException("Condizione non valida: " + condition + 
+                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR");
+        }
+        
+        return repo.findByCardCategoryAndCondition(normalizedCategory, normalizedCondition);
+    }
+
+    /**
+     * 🔍 Trova listing filtrati per type e condition
+     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @return Lista di listing con Card.type = type AND Listing.condition = condition
+     * @throws IllegalArgumentException se type o condition non sono validi
+     */
+    public List<Listing> findByTypeAndCondition(String type, String condition) {
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Type non può essere vuoto");
+        }
+        if (condition == null || condition.trim().isEmpty()) {
+            throw new IllegalArgumentException("Condition non può essere vuota");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedType = type.trim().toUpperCase();
+        String normalizedCondition = condition.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!SupportedCardTypes.isValid(normalizedType)) {
+            throw new IllegalArgumentException("Tipo non valido: " + type + 
+                ". Valori ammessi: " + SupportedCardTypes.getSupportedTypesAsString());
+        }
+        if (!isValidCondition(normalizedCondition)) {
+            throw new IllegalArgumentException("Condizione non valida: " + condition + 
+                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR");
+        }
+        
+        return repo.findByCardTypeAndCondition(normalizedType, normalizedCondition);
+    }
+
+    /**
+     * 🔍 Trova listing filtrati per category, type e condition
+     * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
+     * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @return Lista di listing con Card.category = category AND Card.type = type AND Listing.condition = condition
+     * @throws IllegalArgumentException se category, type o condition non sono validi
+     */
+    public List<Listing> findByCategoryAndTypeAndCondition(String category, String type, String condition) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category non può essere vuota");
+        }
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Type non può essere vuoto");
+        }
+        if (condition == null || condition.trim().isEmpty()) {
+            throw new IllegalArgumentException("Condition non può essere vuota");
+        }
+        
+        // Normalizza a uppercase per case-insensitive
+        String normalizedCategory = category.trim().toUpperCase();
+        String normalizedType = type.trim().toUpperCase();
+        String normalizedCondition = condition.trim().toUpperCase();
+        
+        // Valida valori ammessi
+        if (!isValidCategory(normalizedCategory)) {
+            throw new IllegalArgumentException("Categoria non valida: " + category + 
+                ". Valori ammessi: TCG, SPORT, ENTERTAINMENT, VINTAGE");
+        }
+        if (!SupportedCardTypes.isValid(normalizedType)) {
+            throw new IllegalArgumentException("Tipo non valido: " + type + 
+                ". Valori ammessi: " + SupportedCardTypes.getSupportedTypesAsString());
+        }
+        if (!isValidCondition(normalizedCondition)) {
+            throw new IllegalArgumentException("Condizione non valida: " + condition + 
+                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR");
+        }
+        
+        return repo.findByCardCategoryAndTypeAndCondition(normalizedCategory, normalizedType, normalizedCondition);
+    }
+
+    /**
+     * 🔍 Trova listing con filtri opzionali (query unificata)
+     * @param category Categoria (TCG, SPORT, ENTERTAINMENT, VINTAGE) - opzionale
+     * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale
+     * @param condition Condizione (RAW, MINT, NEAR_MINT, ecc.) - opzionale
+     * @param language Lingua (ENGLISH, JAPANESE, KOREAN, ecc.) - opzionale
+     * @return Lista di listing filtrati
+     * 
+     * Note: Nessuna validazione rigida. Se un valore non matcha, restituisce array vuoto.
+     */
+    public List<Listing> findByFilters(
+        String category,
+        String type,
+        String condition,
+        String language,
+        String franchise
+    ) {
+        // Normalizzazione category (se fornita)
+        String normalizedCategory = null;
+        if (category != null && !category.trim().isEmpty()) {
+            normalizedCategory = category.trim().toUpperCase();
+        }
+        
+        // Normalizzazione type (se fornito)
+        String normalizedType = null;
+        if (type != null && !type.trim().isEmpty()) {
+            normalizedType = type.trim().toUpperCase();
+        }
+        
+        // Normalizzazione condition (se fornita)
+        String normalizedCondition = null;
+        if (condition != null && !condition.trim().isEmpty()) {
+            normalizedCondition = condition.trim().toUpperCase();
+        }
+        
+        // Normalizzazione language (se fornita) - trim().toUpperCase() come type e condition
+        String normalizedLanguage = null;
+        if (language != null && !language.trim().isEmpty()) {
+            normalizedLanguage = language.trim().toUpperCase();
+        }
+        
+        // Normalizzazione franchise (se fornita) - trim().toUpperCase() come type e condition
+        String normalizedFranchise = null;
+        if (franchise != null && !franchise.trim().isEmpty()) {
+            normalizedFranchise = franchise.trim().toUpperCase();
+        }
+        
+        // Query unificata - nessuna validazione rigida, restituisce array vuoto se non matcha
+        return repo.findByFilters(normalizedCategory, normalizedType, normalizedCondition, normalizedLanguage, normalizedFranchise);
+    }
+
+    /**
      * 📝 Crea listing con gestione valori personalizzati "Altro"
      */
     @Transactional

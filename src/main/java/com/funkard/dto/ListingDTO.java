@@ -44,4 +44,19 @@ public class ListingDTO {
      * Note: Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
      */
     private String condition;
+    
+    /**
+     * 🌍 Lingua della Card associata (ENGLISH, JAPANESE, KOREAN, CHINESE_SIMPLIFIED, CHINESE_TRADITIONAL, 
+     * ITALIAN, FRENCH, GERMAN, SPANISH, PORTUGUESE, RUSSIAN, INDONESIAN, THAI)
+     * 
+     * Note: Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
+     */
+    private String language;
+    
+    /**
+     * 🎮 Franchise della Card associata (es. Pokémon, Yu-Gi-Oh!, Magic: The Gathering)
+     * 
+     * Note: Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
+     */
+    private String franchise;
 }
