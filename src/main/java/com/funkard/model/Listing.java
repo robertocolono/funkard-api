@@ -23,6 +23,12 @@ public class Listing {
     
     private String condition;
     private String seller;
+    
+    /**
+     * 🔄 Indica se questa vendita accetta scambi
+     */
+    @Column(name = "accept_trades", nullable = false)
+    private boolean acceptTrades = false;
 
     @ManyToOne
     @JoinColumn(name = "card_id")
@@ -52,4 +58,7 @@ public class Listing {
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
+    public boolean isAcceptTrades() { return acceptTrades; }
+    public void setAcceptTrades(boolean acceptTrades) { this.acceptTrades = acceptTrades; }
 }

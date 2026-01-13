@@ -59,4 +59,9 @@ public class ListingDTO {
      * Note: Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
      */
     private String franchise;
+    
+    /**
+     * 🔄 Indica se questa vendita accetta scambi
+     */
+    private Boolean acceptTrades;
 }

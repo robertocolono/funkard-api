@@ -272,7 +272,8 @@ public class ListingService {
         String type,
         String condition,
         String language,
-        String franchise
+        String franchise,
+        Boolean acceptTrades
     ) {
         // Normalizzazione category (se fornita)
         String normalizedCategory = null;
@@ -305,7 +306,7 @@ public class ListingService {
         }
         
         // Query unificata - nessuna validazione rigida, restituisce array vuoto se non matcha
-        return repo.findByFilters(normalizedCategory, normalizedType, normalizedCondition, normalizedLanguage, normalizedFranchise);
+        return repo.findByFilters(normalizedCategory, normalizedType, normalizedCondition, normalizedLanguage, normalizedFranchise, acceptTrades);
     }
 
     /**
