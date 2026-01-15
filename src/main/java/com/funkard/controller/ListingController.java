@@ -44,13 +44,14 @@ public class ListingController {
 
     @GetMapping
     @Cacheable(value = "marketplace:filters", 
-        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + (#type != null ? #type.toUpperCase() : 'ALL') + '_' + (#condition != null ? #condition.toUpperCase() : 'ALL') + '_' + (#language != null ? #language.toUpperCase() : 'ALL') + '_' + (#franchise != null ? #franchise.toUpperCase() : 'ALL') + '_' + (#acceptTrades != null ? (#acceptTrades ? 'TRUE' : 'FALSE') : 'ALL')")
+        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + (#type != null ? #type.toUpperCase() : 'ALL') + '_' + (#condition != null ? #condition.toUpperCase() : 'ALL') + '_' + (#language != null ? #language.toUpperCase() : 'ALL') + '_' + (#franchise != null ? #franchise.toUpperCase() : 'ALL') + '_' + (#search != null ? #search.trim().toUpperCase() : 'ALL') + '_' + (#acceptTrades != null ? (#acceptTrades ? 'TRUE' : 'FALSE') : 'ALL')")
     public ResponseEntity<?> getAllListings(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String condition,
             @RequestParam(required = false) String language,
             @RequestParam(required = false) String franchise,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean acceptTrades,
             Authentication authentication) {
         
@@ -59,11 +60,11 @@ public class ListingController {
         try {
             // Query unificata - gestisce tutte le combinazioni automaticamente
             // Nessuna validazione rigida: se valore non matcha, restituisce array vuoto
-            listings = service.findByFilters(category, type, condition, language, franchise, acceptTrades);
+            listings = service.findByFilters(category, type, condition, language, franchise, search, acceptTrades);
         } catch (IllegalArgumentException e) {
             // Validazione fallita → HTTP 400 (solo per metodi legacy se ancora usati)
-            log.warn("Filtro non valido: category={}, type={}, condition={}, language={}, franchise={}, acceptTrades={}, error={}", 
-                category, type, condition, language, franchise, acceptTrades, e.getMessage());
+            log.warn("Filtro non valido: category={}, type={}, condition={}, language={}, franchise={}, search={}, acceptTrades={}, error={}", 
+                category, type, condition, language, franchise, search, acceptTrades, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
         }

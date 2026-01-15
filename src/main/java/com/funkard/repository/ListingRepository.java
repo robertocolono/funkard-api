@@ -57,7 +57,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     List<Listing> findByCardCategoryAndTypeAndCondition(@Param("category") String category, @Param("type") String type, @Param("condition") String condition);
     
     /**
-     * 🔍 Query unificata per filtri Marketplace (category, type, condition, language, franchise, acceptTrades)
+     * 🔍 Query unificata per filtri Marketplace (category, type, condition, language, franchise, search, acceptTrades)
      * Parametri NULL = filtro non applicato
      * Join implicito: Listing.card → Card per category, type, language, franchise
      */
@@ -68,6 +68,13 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         AND (:condition IS NULL OR l.condition = :condition)
         AND (:language IS NULL OR l.card.language = :language)
         AND (:franchise IS NULL OR l.card.franchise = :franchise)
+        AND (:search IS NULL OR (
+            LOWER(COALESCE(l.title, '')) LIKE :search
+            OR LOWER(COALESCE(l.description, '')) LIKE :search
+            OR LOWER(COALESCE(l.card.name, '')) LIKE :search
+            OR LOWER(COALESCE(l.card.setName, '')) LIKE :search
+            OR LOWER(COALESCE(l.card.franchise, '')) LIKE :search
+        ))
         AND (:acceptTrades IS NULL OR l.acceptTrades = :acceptTrades)
         """)
     List<Listing> findByFilters(
@@ -76,6 +83,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         @Param("condition") String condition,
         @Param("language") String language,
         @Param("franchise") String franchise,
+        @Param("search") String search,
         @Param("acceptTrades") Boolean acceptTrades
     );
 }

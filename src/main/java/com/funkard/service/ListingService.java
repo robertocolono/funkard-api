@@ -263,6 +263,7 @@ public class ListingService {
      * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale
      * @param condition Condizione (RAW, MINT, NEAR_MINT, ecc.) - opzionale
      * @param language Lingua (ENGLISH, JAPANESE, KOREAN, ecc.) - opzionale
+     * @param search Testo libero per ricerca (opzionale)
      * @return Lista di listing filtrati
      * 
      * Note: Nessuna validazione rigida. Se un valore non matcha, restituisce array vuoto.
@@ -273,6 +274,7 @@ public class ListingService {
         String condition,
         String language,
         String franchise,
+        String search,
         Boolean acceptTrades
     ) {
         // Normalizzazione category (se fornita)
@@ -304,9 +306,15 @@ public class ListingService {
         if (franchise != null && !franchise.trim().isEmpty()) {
             normalizedFranchise = franchise.trim().toUpperCase();
         }
+
+        // Normalizzazione search (se fornita) - trim e lowercase per match case-insensitive
+        String normalizedSearch = null;
+        if (search != null && !search.trim().isEmpty()) {
+            normalizedSearch = "%" + search.trim().toLowerCase() + "%";
+        }
         
         // Query unificata - nessuna validazione rigida, restituisce array vuoto se non matcha
-        return repo.findByFilters(normalizedCategory, normalizedType, normalizedCondition, normalizedLanguage, normalizedFranchise, acceptTrades);
+        return repo.findByFilters(normalizedCategory, normalizedType, normalizedCondition, normalizedLanguage, normalizedFranchise, normalizedSearch, acceptTrades);
     }
 
     /**
