@@ -116,7 +116,7 @@ public class ListingService {
 
     /**
      * 🔍 Trova listing filtrati per condition
-     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR, SEALED)
      * @return Lista di listing con Listing.condition = condition
      * @throws IllegalArgumentException se condition non è valida
      */
@@ -131,7 +131,7 @@ public class ListingService {
         // Valida valori ammessi
         if (!isValidCondition(normalizedCondition)) {
             throw new IllegalArgumentException("Condizione non valida: " + condition + 
-                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR");
+                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR, SEALED");
         }
         
         return repo.findByCondition(normalizedCondition);
@@ -148,14 +148,15 @@ public class ListingService {
                "VERY_GOOD".equals(condition) ||
                "GOOD".equals(condition) ||
                "FAIR".equals(condition) ||
-               "POOR".equals(condition);
+               "POOR".equals(condition) ||
+               "SEALED".equals(condition);
         // ⚠️ PLAYED è ESPLICITAMENTE ESCLUSO
     }
 
     /**
      * 🔍 Trova listing filtrati per category e condition
      * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
-     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR, SEALED)
      * @return Lista di listing con Card.category = category AND Listing.condition = condition
      * @throws IllegalArgumentException se category o condition non sono validi
      */
@@ -187,7 +188,7 @@ public class ListingService {
     /**
      * 🔍 Trova listing filtrati per type e condition
      * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
-     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR, SEALED)
      * @return Lista di listing con Card.type = type AND Listing.condition = condition
      * @throws IllegalArgumentException se type o condition non sono validi
      */
@@ -220,7 +221,7 @@ public class ListingService {
      * 🔍 Trova listing filtrati per category, type e condition
      * @param category Categoria da filtrare (TCG, SPORT, ENTERTAINMENT, VINTAGE)
      * @param type Tipo da filtrare (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
-     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR)
+     * @param condition Condizione da filtrare (RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR, SEALED)
      * @return Lista di listing con Card.category = category AND Card.type = type AND Listing.condition = condition
      * @throws IllegalArgumentException se category, type o condition non sono validi
      */
@@ -261,7 +262,7 @@ public class ListingService {
      * 🔍 Trova listing con filtri opzionali (query unificata)
      * @param category Categoria (TCG, SPORT, ENTERTAINMENT, VINTAGE) - opzionale
      * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale
-     * @param condition Condizione (RAW, MINT, NEAR_MINT, ecc.) - opzionale
+     * @param condition Condizione (RAW, MINT, NEAR_MINT, SEALED, ecc.) - opzionale
      * @param language Lingua (ENGLISH, JAPANESE, KOREAN, ecc.) - opzionale
      * @param search Testo libero per ricerca (opzionale)
      * @return Lista di listing filtrati
@@ -289,10 +290,18 @@ public class ListingService {
             normalizedType = type.trim().toUpperCase();
         }
         
-        // Normalizzazione condition (se fornita)
+        // Normalizzazione condition (se fornita) con validazione cross-field
         String normalizedCondition = null;
         if (condition != null && !condition.trim().isEmpty()) {
-            normalizedCondition = condition.trim().toUpperCase();
+            String tempCondition = condition.trim().toUpperCase();
+            // Validazione cross-field: SEALED non valido con SINGLE_CARD
+            if ("SEALED".equals(tempCondition) && normalizedType != null && "SINGLE_CARD".equals(normalizedType)) {
+                // Sanitizzazione difensiva: ignora SEALED se type=SINGLE_CARD
+                log.warn("⚠️ Combinazione invalida ignorata: condition=SEALED con type=SINGLE_CARD. Condition ignorata per ricerca.");
+                normalizedCondition = null; // Tratta come se condition non fosse specificata
+            } else {
+                normalizedCondition = tempCondition;
+            }
         }
         
         // Normalizzazione language (se fornita) - trim().toUpperCase() come type e condition
@@ -332,6 +341,20 @@ public class ListingService {
             listing.setCurrency(currency);
         } else {
             listing.setCurrency("USD");
+        }
+        
+        // 🔒 Validazione cross-field: SEALED non valido con SINGLE_CARD
+        // Valida solo se listing.card è già impostato (non recuperiamo Card via CardRepository)
+        if (listing.getCard() != null && listing.getCard().getType() != null && 
+            listing.getCondition() != null && !listing.getCondition().trim().isEmpty()) {
+            String cardType = listing.getCard().getType().trim().toUpperCase();
+            String listingCondition = listing.getCondition().trim().toUpperCase();
+            if ("SEALED".equals(listingCondition) && "SINGLE_CARD".equals(cardType)) {
+                throw new IllegalArgumentException(
+                    "SEALED non è valido per prodotti SINGLE_CARD. " +
+                    "SEALED può essere usato solo per prodotti sigillati (box, booster pack, ecc.)."
+                );
+            }
         }
         
         // Gestisci valori personalizzati "Altro"

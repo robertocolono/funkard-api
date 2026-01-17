@@ -60,6 +60,7 @@ public class ListingController {
         try {
             // Query unificata - gestisce tutte le combinazioni automaticamente
             // Nessuna validazione rigida: se valore non matcha, restituisce array vuoto
+            // La sanitizzazione di condition (SEALED + SINGLE_CARD) avviene nel service (findByFilters)
             listings = service.findByFilters(category, type, condition, language, franchise, search, acceptTrades);
         } catch (IllegalArgumentException e) {
             // Validazione fallita → HTTP 400 (solo per metodi legacy se ancora usati)
