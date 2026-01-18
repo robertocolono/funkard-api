@@ -44,10 +44,10 @@ public class ListingController {
 
     @GetMapping
     @Cacheable(value = "marketplace:filters", 
-        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + (#type != null ? #type.toUpperCase() : 'ALL') + '_' + (#condition != null ? #condition.toUpperCase() : 'ALL') + '_' + (#language != null ? #language.toUpperCase() : 'ALL') + '_' + (#franchise != null ? #franchise.toUpperCase() : 'ALL') + '_' + (#search != null ? #search.trim().toUpperCase() : 'ALL') + '_' + (#acceptTrades != null ? (#acceptTrades ? 'TRUE' : 'FALSE') : 'ALL')")
+        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + T(com.funkard.controller.ListingController).buildTypeCacheKey(#type) + '_' + (#condition != null ? #condition.toUpperCase() : 'ALL') + '_' + (#language != null ? #language.toUpperCase() : 'ALL') + '_' + (#franchise != null ? #franchise.toUpperCase() : 'ALL') + '_' + (#search != null ? #search.trim().toUpperCase() : 'ALL') + '_' + (#acceptTrades != null ? (#acceptTrades ? 'TRUE' : 'FALSE') : 'ALL')")
     public ResponseEntity<?> getAllListings(
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String type,
+            @RequestParam(required = false) List<String> type,
             @RequestParam(required = false) String condition,
             @RequestParam(required = false) String language,
             @RequestParam(required = false) String franchise,
@@ -61,6 +61,7 @@ public class ListingController {
             // Query unificata - gestisce tutte le combinazioni automaticamente
             // Nessuna validazione rigida: se valore non matcha, restituisce array vuoto
             // La sanitizzazione di condition (SEALED + SINGLE_CARD) avviene nel service (findByFilters)
+            // type è multiselect: Spring converte automaticamente ?type=X in List<String> con 1 elemento
             listings = service.findByFilters(category, type, condition, language, franchise, search, acceptTrades);
         } catch (IllegalArgumentException e) {
             // Validazione fallita → HTTP 400 (solo per metodi legacy se ancora usati)
@@ -208,5 +209,22 @@ public class ListingController {
         }
         
         return dto;
+    }
+
+    /**
+     * 🔑 Helper method per costruire cache key deterministica per type (multiselect)
+     * Normalizza, ordina, deduplica e unisce con virgola
+     * Usato da SpEL nella cache key
+     */
+    public static String buildTypeCacheKey(List<String> type) {
+        if (type == null || type.isEmpty()) {
+            return "ALL";
+        }
+        return type.stream()
+            .filter(t -> t != null && !t.trim().isEmpty())
+            .map(t -> t.trim().toUpperCase())
+            .distinct()
+            .sorted()
+            .collect(Collectors.joining(","));
     }
 }

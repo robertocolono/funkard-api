@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -261,7 +262,7 @@ public class ListingService {
     /**
      * 🔍 Trova listing con filtri opzionali (query unificata)
      * @param category Categoria (TCG, SPORT, ENTERTAINMENT, VINTAGE) - opzionale
-     * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale
+     * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale, multiselect (lista)
      * @param condition Condizione (RAW, MINT, NEAR_MINT, SEALED, ecc.) - opzionale
      * @param language Lingua (ENGLISH, JAPANESE, KOREAN, ecc.) - opzionale
      * @param search Testo libero per ricerca (opzionale)
@@ -271,7 +272,7 @@ public class ListingService {
      */
     public List<Listing> findByFilters(
         String category,
-        String type,
+        List<String> type,
         String condition,
         String language,
         String franchise,
@@ -284,20 +285,29 @@ public class ListingService {
             normalizedCategory = category.trim().toUpperCase();
         }
         
-        // Normalizzazione type (se fornito)
-        String normalizedType = null;
-        if (type != null && !type.trim().isEmpty()) {
-            normalizedType = type.trim().toUpperCase();
+        // Normalizzazione type (multiselect): normalizza lista, rimuove duplicati, ordina
+        List<String> normalizedType = null;
+        if (type != null && !type.isEmpty()) {
+            normalizedType = type.stream()
+                .filter(t -> t != null && !t.trim().isEmpty())
+                .map(t -> t.trim().toUpperCase())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+            // Se lista risultante è vuota dopo normalizzazione, trattare come null
+            if (normalizedType.isEmpty()) {
+                normalizedType = null;
+            }
         }
         
         // Normalizzazione condition (se fornita) con validazione cross-field
         String normalizedCondition = null;
         if (condition != null && !condition.trim().isEmpty()) {
             String tempCondition = condition.trim().toUpperCase();
-            // Validazione cross-field: SEALED non valido con SINGLE_CARD
-            if ("SEALED".equals(tempCondition) && normalizedType != null && "SINGLE_CARD".equals(normalizedType)) {
-                // Sanitizzazione difensiva: ignora SEALED se type=SINGLE_CARD
-                log.warn("⚠️ Combinazione invalida ignorata: condition=SEALED con type=SINGLE_CARD. Condition ignorata per ricerca.");
+            // Validazione cross-field: SEALED non valido se type contiene SINGLE_CARD
+            if ("SEALED".equals(tempCondition) && normalizedType != null && normalizedType.contains("SINGLE_CARD")) {
+                // Sanitizzazione difensiva: ignora SEALED se type contiene SINGLE_CARD
+                log.warn("⚠️ Combinazione invalida ignorata: condition=SEALED con type contenente SINGLE_CARD. Condition ignorata per ricerca.");
                 normalizedCondition = null; // Tratta come se condition non fosse specificata
             } else {
                 normalizedCondition = tempCondition;
