@@ -65,7 +65,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     @Query("""
         SELECT l FROM Listing l
         WHERE (:category IS NULL OR l.card.category = :category)
-        AND (:type IS NULL OR SIZE(:type) = 0 OR l.card.type IN :type)
+        AND (:type IS NULL OR l.card.type IN :type)
         AND (:condition IS NULL OR l.condition = :condition)
         AND (:language IS NULL OR l.card.language = :language)
         AND (:franchise IS NULL OR l.card.franchise = :franchise)
