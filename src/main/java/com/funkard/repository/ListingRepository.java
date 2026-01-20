@@ -66,7 +66,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         SELECT l FROM Listing l
         WHERE (:category IS NULL OR l.card.category = :category)
         AND (:type IS NULL OR l.card.type IN :type)
-        AND (:condition IS NULL OR l.condition = :condition)
+        AND (:condition IS NULL OR l.condition IN :condition)
         AND (:language IS NULL OR l.card.language = :language)
         AND (:franchise IS NULL OR l.card.franchise = :franchise)
         AND (:search IS NULL OR (
@@ -81,7 +81,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     List<Listing> findByFilters(
         @Param("category") String category,
         @Param("type") List<String> type,
-        @Param("condition") String condition,
+        @Param("condition") List<String> condition,
         @Param("language") String language,
         @Param("franchise") String franchise,
         @Param("search") String search,

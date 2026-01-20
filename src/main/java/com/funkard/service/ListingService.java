@@ -263,7 +263,7 @@ public class ListingService {
      * 🔍 Trova listing con filtri opzionali (query unificata)
      * @param category Categoria (TCG, SPORT, ENTERTAINMENT, VINTAGE) - opzionale
      * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale, multiselect (lista)
-     * @param condition Condizione (RAW, MINT, NEAR_MINT, SEALED, ecc.) - opzionale
+     * @param condition Condizione (RAW, MINT, NEAR_MINT, SEALED, ecc.) - opzionale, multiselect (lista)
      * @param language Lingua (ENGLISH, JAPANESE, KOREAN, ecc.) - opzionale
      * @param search Testo libero per ricerca (opzionale)
      * @return Lista di listing filtrati
@@ -273,7 +273,7 @@ public class ListingService {
     public List<Listing> findByFilters(
         String category,
         List<String> type,
-        String condition,
+        List<String> condition,
         String language,
         String franchise,
         String search,
@@ -300,17 +300,18 @@ public class ListingService {
             }
         }
         
-        // Normalizzazione condition (se fornita) con validazione cross-field
-        String normalizedCondition = null;
-        if (condition != null && !condition.trim().isEmpty()) {
-            String tempCondition = condition.trim().toUpperCase();
-            // Validazione cross-field: SEALED non valido se type contiene SINGLE_CARD
-            if ("SEALED".equals(tempCondition) && normalizedType != null && normalizedType.contains("SINGLE_CARD")) {
-                // Sanitizzazione difensiva: ignora SEALED se type contiene SINGLE_CARD
-                log.warn("⚠️ Combinazione invalida ignorata: condition=SEALED con type contenente SINGLE_CARD. Condition ignorata per ricerca.");
-                normalizedCondition = null; // Tratta come se condition non fosse specificata
-            } else {
-                normalizedCondition = tempCondition;
+        // Normalizzazione condition (multiselect): normalizza lista, rimuove duplicati, ordina
+        List<String> normalizedCondition = null;
+        if (condition != null && !condition.isEmpty()) {
+            normalizedCondition = condition.stream()
+                .filter(c -> c != null && !c.trim().isEmpty())
+                .map(c -> c.trim().toUpperCase())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+            // Se lista risultante è vuota dopo normalizzazione, trattare come null
+            if (normalizedCondition.isEmpty()) {
+                normalizedCondition = null;
             }
         }
         
