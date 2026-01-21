@@ -265,6 +265,7 @@ public class ListingService {
      * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale, multiselect (lista)
      * @param condition Condizione (RAW, MINT, NEAR_MINT, SEALED, ecc.) - opzionale, multiselect (lista)
      * @param language Lingua (ENGLISH, JAPANESE, KOREAN, CHINESE_SIMPLIFIED, ecc.) - opzionale, multiselect (lista)
+     * @param franchise Franchise (Pokémon, One Piece, ecc.) - opzionale, multiselect (lista)
      * @param search Testo libero per ricerca (opzionale)
      * @return Lista di listing filtrati
      * 
@@ -275,7 +276,7 @@ public class ListingService {
         List<String> type,
         List<String> condition,
         List<String> language,
-        String franchise,
+        List<String> franchise,
         String search,
         Boolean acceptTrades
     ) {
@@ -331,10 +332,19 @@ public class ListingService {
             }
         }
         
-        // Normalizzazione franchise (se fornita) - trim().toUpperCase() come type e condition
-        String normalizedFranchise = null;
-        if (franchise != null && !franchise.trim().isEmpty()) {
-            normalizedFranchise = franchise.trim().toUpperCase();
+        // Normalizzazione franchise (multiselect): normalizza lista, rimuove duplicati, ordina
+        List<String> normalizedFranchise = null;
+        if (franchise != null && !franchise.isEmpty()) {
+            normalizedFranchise = franchise.stream()
+                .filter(f -> f != null && !f.trim().isEmpty())
+                .map(f -> f.trim().toUpperCase())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+            // Se lista risultante è vuota dopo normalizzazione, trattare come null
+            if (normalizedFranchise.isEmpty()) {
+                normalizedFranchise = null;
+            }
         }
 
         // Normalizzazione search (se fornita) - trim e lowercase per match case-insensitive

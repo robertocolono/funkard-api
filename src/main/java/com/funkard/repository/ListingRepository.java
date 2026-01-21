@@ -60,7 +60,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
      * 🔍 Query unificata per filtri Marketplace (category, type, condition, language, franchise, search, acceptTrades)
      * Parametri NULL = filtro non applicato
      * Join implicito: Listing.card → Card per category, type, language, franchise
-     * type è multiselect: usa IN per liste, gestisce null e liste vuote
+     * type, condition, language e franchise sono multiselect: usa IN per liste, gestisce null e liste vuote
      */
     @Query("""
         SELECT l FROM Listing l
@@ -68,7 +68,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         AND (:type IS NULL OR l.card.type IN :type)
         AND (:condition IS NULL OR l.condition IN :condition)
         AND (:language IS NULL OR l.card.language IN :language)
-        AND (:franchise IS NULL OR l.card.franchise = :franchise)
+        AND (:franchise IS NULL OR l.card.franchise IN :franchise)
         AND (:search IS NULL OR (
             LOWER(COALESCE(l.title, '')) LIKE :search
             OR LOWER(COALESCE(l.description, '')) LIKE :search
@@ -83,7 +83,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         @Param("type") List<String> type,
         @Param("condition") List<String> condition,
         @Param("language") List<String> language,
-        @Param("franchise") String franchise,
+        @Param("franchise") List<String> franchise,
         @Param("search") String search,
         @Param("acceptTrades") Boolean acceptTrades
     );
