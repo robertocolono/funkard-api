@@ -264,7 +264,7 @@ public class ListingService {
      * @param category Categoria (TCG, SPORT, ENTERTAINMENT, VINTAGE) - opzionale
      * @param type Tipo (SINGLE_CARD, SEALED_BOX, ecc.) - opzionale, multiselect (lista)
      * @param condition Condizione (RAW, MINT, NEAR_MINT, SEALED, ecc.) - opzionale, multiselect (lista)
-     * @param language Lingua (ENGLISH, JAPANESE, KOREAN, ecc.) - opzionale
+     * @param language Lingua (ENGLISH, JAPANESE, KOREAN, CHINESE_SIMPLIFIED, ecc.) - opzionale, multiselect (lista)
      * @param search Testo libero per ricerca (opzionale)
      * @return Lista di listing filtrati
      * 
@@ -274,7 +274,7 @@ public class ListingService {
         String category,
         List<String> type,
         List<String> condition,
-        String language,
+        List<String> language,
         String franchise,
         String search,
         Boolean acceptTrades
@@ -315,10 +315,20 @@ public class ListingService {
             }
         }
         
-        // Normalizzazione language (se fornita) - trim().toUpperCase() come type e condition
-        String normalizedLanguage = null;
-        if (language != null && !language.trim().isEmpty()) {
-            normalizedLanguage = language.trim().toUpperCase();
+        // Normalizzazione language (multiselect): normalizza lista, rimuove duplicati, ordina
+        // Mappa nomi completi a codici normalizzati (es. "Chinese (Simplified)" → "CHINESE_SIMPLIFIED")
+        List<String> normalizedLanguage = null;
+        if (language != null && !language.isEmpty()) {
+            normalizedLanguage = language.stream()
+                .filter(l -> l != null && !l.trim().isEmpty())
+                .map(l -> normalizeLanguageCode(l.trim().toUpperCase()))
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+            // Se lista risultante è vuota dopo normalizzazione, trattare come null
+            if (normalizedLanguage.isEmpty()) {
+                normalizedLanguage = null;
+            }
         }
         
         // Normalizzazione franchise (se fornita) - trim().toUpperCase() come type e condition
@@ -440,5 +450,59 @@ public class ListingService {
         }
         
         return repo.save(listing);
+    }
+
+    /**
+     * 🔄 Normalizza codice lingua da nome completo a codice standardizzato
+     * Mappa valori "umani" dal frontend (es. "Chinese (Simplified)") a codici normalizzati (es. "CHINESE_SIMPLIFIED")
+     * 
+     * @param language Nome lingua (può essere già uppercase o nome completo)
+     * @return Codice normalizzato uppercase (es. "ENGLISH", "CHINESE_SIMPLIFIED")
+     */
+    private String normalizeLanguageCode(String language) {
+        if (language == null || language.trim().isEmpty()) {
+            return language;
+        }
+        
+        String normalized = language.trim().toUpperCase();
+        
+        // Mapping da nomi completi a codici normalizzati
+        // Se il valore è già un codice normalizzato, viene restituito così com'è
+        switch (normalized) {
+            case "ENGLISH":
+                return "ENGLISH";
+            case "JAPANESE":
+                return "JAPANESE";
+            case "KOREAN":
+                return "KOREAN";
+            case "CHINESE (SIMPLIFIED)":
+            case "CHINESE_SIMPLIFIED":
+            case "CHINESE SIMPLIFIED":
+                return "CHINESE_SIMPLIFIED";
+            case "CHINESE (TRADITIONAL)":
+            case "CHINESE_TRADITIONAL":
+            case "CHINESE TRADITIONAL":
+                return "CHINESE_TRADITIONAL";
+            case "ITALIAN":
+                return "ITALIAN";
+            case "FRENCH":
+                return "FRENCH";
+            case "GERMAN":
+                return "GERMAN";
+            case "SPANISH":
+                return "SPANISH";
+            case "PORTUGUESE":
+                return "PORTUGUESE";
+            case "RUSSIAN":
+                return "RUSSIAN";
+            case "INDONESIAN":
+                return "INDONESIAN";
+            case "THAI":
+                return "THAI";
+            default:
+                // Se non matcha nessun mapping, restituisce il valore uppercase così com'è
+                // (per retrocompatibilità con valori già normalizzati o custom)
+                return normalized;
+        }
     }
 }

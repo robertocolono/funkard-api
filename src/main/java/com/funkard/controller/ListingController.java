@@ -44,12 +44,12 @@ public class ListingController {
 
     @GetMapping
     @Cacheable(value = "marketplace:filters", 
-        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + T(com.funkard.controller.ListingController).buildTypeCacheKey(#type) + '_' + T(com.funkard.controller.ListingController).buildConditionCacheKey(#condition) + '_' + (#language != null ? #language.toUpperCase() : 'ALL') + '_' + (#franchise != null ? #franchise.toUpperCase() : 'ALL') + '_' + (#search != null ? #search.trim().toUpperCase() : 'ALL') + '_' + (#acceptTrades != null ? (#acceptTrades ? 'TRUE' : 'FALSE') : 'ALL')")
+        key = "(#category != null ? #category.toUpperCase() : 'ALL') + '_' + T(com.funkard.controller.ListingController).buildTypeCacheKey(#type) + '_' + T(com.funkard.controller.ListingController).buildConditionCacheKey(#condition) + '_' + T(com.funkard.controller.ListingController).buildLanguageCacheKey(#language) + '_' + (#franchise != null ? #franchise.toUpperCase() : 'ALL') + '_' + (#search != null ? #search.trim().toUpperCase() : 'ALL') + '_' + (#acceptTrades != null ? (#acceptTrades ? 'TRUE' : 'FALSE') : 'ALL')")
     public ResponseEntity<?> getAllListings(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) List<String> type,
             @RequestParam(required = false) List<String> condition,
-            @RequestParam(required = false) String language,
+            @RequestParam(required = false) List<String> language,
             @RequestParam(required = false) String franchise,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean acceptTrades,
@@ -60,7 +60,7 @@ public class ListingController {
         try {
             // Query unificata - gestisce tutte le combinazioni automaticamente
             // Nessuna validazione rigida: se valore non matcha, restituisce array vuoto
-            // type e condition sono multiselect: Spring converte automaticamente ?type=X in List<String> con 1 elemento
+            // type, condition e language sono multiselect: Spring converte automaticamente ?type=X in List<String> con 1 elemento
             listings = service.findByFilters(category, type, condition, language, franchise, search, acceptTrades);
         } catch (IllegalArgumentException e) {
             // Validazione fallita → HTTP 400 (solo per metodi legacy se ancora usati)
@@ -239,6 +239,23 @@ public class ListingController {
         return condition.stream()
             .filter(c -> c != null && !c.trim().isEmpty())
             .map(c -> c.trim().toUpperCase())
+            .distinct()
+            .sorted()
+            .collect(Collectors.joining(","));
+    }
+
+    /**
+     * 🔑 Helper method per costruire cache key deterministica per language (multiselect)
+     * Normalizza, ordina, deduplica e unisce con virgola
+     * Usato da SpEL nella cache key
+     */
+    public static String buildLanguageCacheKey(List<String> language) {
+        if (language == null || language.isEmpty()) {
+            return "ALL";
+        }
+        return language.stream()
+            .filter(l -> l != null && !l.trim().isEmpty())
+            .map(l -> l.trim().toUpperCase())
             .distinct()
             .sorted()
             .collect(Collectors.joining(","));

@@ -67,7 +67,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         WHERE (:category IS NULL OR l.card.category = :category)
         AND (:type IS NULL OR l.card.type IN :type)
         AND (:condition IS NULL OR l.condition IN :condition)
-        AND (:language IS NULL OR l.card.language = :language)
+        AND (:language IS NULL OR l.card.language IN :language)
         AND (:franchise IS NULL OR l.card.franchise = :franchise)
         AND (:search IS NULL OR (
             LOWER(COALESCE(l.title, '')) LIKE :search
@@ -82,7 +82,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         @Param("category") String category,
         @Param("type") List<String> type,
         @Param("condition") List<String> condition,
-        @Param("language") String language,
+        @Param("language") List<String> language,
         @Param("franchise") String franchise,
         @Param("search") String search,
         @Param("acceptTrades") Boolean acceptTrades
