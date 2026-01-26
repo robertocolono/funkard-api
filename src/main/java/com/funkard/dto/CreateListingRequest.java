@@ -31,6 +31,14 @@ public class CreateListingRequest {
     
     private String cardId;
     
+    /**
+     * 📂 Categoria prodotto (TCG, SPORT, ENTERTAINMENT, VINTAGE)
+     * Obbligatorio per creazione listing dalla Sell
+     */
+    @NotNull(message = "La categoria è obbligatoria")
+    @NotBlank(message = "La categoria non può essere vuota")
+    private String category;
+    
     // Valori TCG, Lingua e Franchise
     private String tcg; // Valore TCG selezionato
     private String language; // Valore Lingua selezionato

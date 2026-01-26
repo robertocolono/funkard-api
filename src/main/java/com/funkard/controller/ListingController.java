@@ -122,6 +122,11 @@ public class ListingController {
             
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
             
+        } catch (IllegalArgumentException e) {
+            // Validazione fallita (category non valida, valuta non supportata, ecc.)
+            log.warn("Validazione fallita durante creazione listing: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("Errore durante creazione listing: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

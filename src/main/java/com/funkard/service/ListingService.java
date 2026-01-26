@@ -2,8 +2,10 @@ package com.funkard.service;
 
 import com.funkard.config.SupportedCardTypes;
 import com.funkard.dto.CreateListingRequest;
+import com.funkard.model.Card;
 import com.funkard.model.Listing;
 import com.funkard.model.PendingValue;
+import com.funkard.repository.CardRepository;
 import com.funkard.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ListingService {
     private final ListingRepository repo;
+    private final CardRepository cardRepository;
     private final PendingValueService pendingValueService;
 
     public List<Listing> getAll() {
@@ -362,8 +365,28 @@ public class ListingService {
      */
     @Transactional
     public Listing create(Listing listing, CreateListingRequest request, Long userId) {
+        // 📂 Valida e crea Card con category
+        if (request == null || request.getCategory() == null || request.getCategory().trim().isEmpty()) {
+            throw new IllegalArgumentException("La categoria è obbligatoria");
+        }
+        
+        String category = request.getCategory().trim().toUpperCase();
+        if (!isValidCategory(category)) {
+            throw new IllegalArgumentException("Categoria non valida: " + request.getCategory() + 
+                ". Valori ammessi: TCG, SPORT, ENTERTAINMENT, VINTAGE");
+        }
+        
+        // Crea Card con category
+        Card card = new Card();
+        card.setCategory(category);
+        Card savedCard = cardRepository.save(card);
+        log.debug("✅ Card creata con category: {}", category);
+        
+        // Collega Listing a Card
+        listing.setCard(savedCard);
+        
         // 💱 Valida e imposta currency (default USD se non fornita)
-        if (request != null && request.getCurrency() != null && !request.getCurrency().trim().isEmpty()) {
+        if (request.getCurrency() != null && !request.getCurrency().trim().isEmpty()) {
             String currency = request.getCurrency().trim().toUpperCase();
             if (!com.funkard.config.SupportedCurrencies.isValid(currency)) {
                 throw new IllegalArgumentException("Valuta non supportata: " + currency + 
@@ -375,7 +398,7 @@ public class ListingService {
         }
         
         // 🔒 Validazione cross-field: SEALED non valido con SINGLE_CARD
-        // Valida solo se listing.card è già impostato (non recuperiamo Card via CardRepository)
+        // Ora listing.card è sempre impostato, quindi possiamo validare
         if (listing.getCard() != null && listing.getCard().getType() != null && 
             listing.getCondition() != null && !listing.getCondition().trim().isEmpty()) {
             String cardType = listing.getCard().getType().trim().toUpperCase();
