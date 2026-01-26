@@ -39,6 +39,18 @@ public class CreateListingRequest {
     @NotBlank(message = "La categoria non può essere vuota")
     private String category;
     
+    /**
+     * 📝 Nome della carta (obbligatorio)
+     */
+    @NotNull(message = "Il nome della carta è obbligatorio")
+    @NotBlank(message = "Il nome della carta non può essere vuoto")
+    private String cardName;
+    
+    /**
+     * 📚 Serie/Espansione (opzionale)
+     */
+    private String series;
+    
     // Valori TCG, Lingua e Franchise
     private String tcg; // Valore TCG selezionato
     private String language; // Valore Lingua selezionato

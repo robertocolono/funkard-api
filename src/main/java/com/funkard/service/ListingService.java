@@ -380,6 +380,18 @@ public class ListingService {
         Card card = new Card();
         card.setCategory(category);
         
+        // 📝 Imposta nome carta (obbligatorio)
+        if (request.getCardName() != null && !request.getCardName().trim().isEmpty()) {
+            card.setName(request.getCardName().trim());
+            log.debug("✅ Nome carta impostato: {}", request.getCardName().trim());
+        }
+        
+        // 📚 Imposta serie/espansione se presente (opzionale)
+        if (request.getSeries() != null && !request.getSeries().trim().isEmpty()) {
+            card.setSetName(request.getSeries().trim());
+            log.debug("✅ Serie impostata: {}", request.getSeries().trim());
+        }
+        
         // 🎮 Imposta franchise se presente (opzionale, normalizzato uppercase)
         if (request.getFranchise() != null && !request.getFranchise().trim().isEmpty()) {
             String franchise = request.getFranchise().trim().toUpperCase();
