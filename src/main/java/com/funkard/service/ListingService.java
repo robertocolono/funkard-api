@@ -376,9 +376,22 @@ public class ListingService {
                 ". Valori ammessi: TCG, SPORT, ENTERTAINMENT, VINTAGE");
         }
         
+        // 📦 Valida e normalizza type (obbligatorio)
+        if (request.getType() == null || request.getType().trim().isEmpty()) {
+            throw new IllegalArgumentException("Il tipo è obbligatorio");
+        }
+        
+        String normalizedType = request.getType().trim().toUpperCase();
+        if (!SupportedCardTypes.isValid(normalizedType)) {
+            throw new IllegalArgumentException("Tipo non valido: " + request.getType() + 
+                ". Valori ammessi: " + SupportedCardTypes.getSupportedTypesAsString());
+        }
+        
         // Crea Card con category
         Card card = new Card();
         card.setCategory(category);
+        card.setType(normalizedType);
+        log.debug("✅ Type impostato: {}", normalizedType);
         
         // 📝 Imposta nome carta (obbligatorio)
         if (request.getCardName() != null && !request.getCardName().trim().isEmpty()) {

@@ -51,6 +51,14 @@ public class CreateListingRequest {
      */
     private String series;
     
+    /**
+     * 📦 Tipo prodotto (SINGLE_CARD, SEALED_BOX, BOOSTER_PACK, CASE, BOX, STARTER_DECK, COMPLETE_SET, PROMO, ACCESSORY)
+     * Obbligatorio per creazione listing dalla Sell
+     */
+    @NotNull(message = "Il tipo è obbligatorio")
+    @NotBlank(message = "Il tipo non può essere vuoto")
+    private String type;
+    
     // Valori TCG, Lingua e Franchise
     private String tcg; // Valore TCG selezionato
     private String language; // Valore Lingua selezionato
