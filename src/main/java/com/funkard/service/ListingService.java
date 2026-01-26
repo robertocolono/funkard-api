@@ -379,6 +379,14 @@ public class ListingService {
         // Crea Card con category
         Card card = new Card();
         card.setCategory(category);
+        
+        // 🎮 Imposta franchise se presente (opzionale, normalizzato uppercase)
+        if (request.getFranchise() != null && !request.getFranchise().trim().isEmpty()) {
+            String franchise = request.getFranchise().trim().toUpperCase();
+            card.setFranchise(franchise);
+            log.debug("✅ Franchise impostato: {}", franchise);
+        }
+        
         Card savedCard = cardRepository.save(card);
         log.debug("✅ Card creata con category: {}", category);
         
