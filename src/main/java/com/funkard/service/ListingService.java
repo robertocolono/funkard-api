@@ -437,6 +437,20 @@ public class ListingService {
             listing.setCurrency("USD");
         }
         
+        // 📋 Valida e normalizza condition (obbligatoria per Sell)
+        if (request.getCondition() == null || request.getCondition().trim().isEmpty()) {
+            throw new IllegalArgumentException("La condizione è obbligatoria");
+        }
+        
+        String normalizedCondition = request.getCondition().trim().toUpperCase();
+        if (!isValidCondition(normalizedCondition)) {
+            throw new IllegalArgumentException("Condizione non valida: " + request.getCondition() + 
+                ". Valori ammessi: RAW, MINT, NEAR_MINT, EXCELLENT, VERY_GOOD, GOOD, FAIR, POOR, SEALED");
+        }
+        
+        listing.setCondition(normalizedCondition);
+        log.debug("✅ Condition normalizzata e validata: {}", normalizedCondition);
+        
         // 🔒 Validazione cross-field: SEALED non valido con SINGLE_CARD
         // Ora listing.card è sempre impostato, quindi possiamo validare
         if (listing.getCard() != null && listing.getCard().getType() != null && 
