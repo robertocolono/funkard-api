@@ -108,7 +108,13 @@ public class ListingController {
             listing.setTitle(request.getTitle());
             listing.setDescription(request.getDescription());
             listing.setPrice(request.getPrice());
+            listing.setQuantity(request.getQuantity());
+            listing.setOriginalPrice(request.getOriginalPrice());
             listing.setCondition(request.getCondition());
+            listing.setSellerDeclarations(request.getSellerDeclarations());
+            if (request.getAcceptTrades() != null) {
+                listing.setAcceptTrades(request.getAcceptTrades());
+            }
             
             // Imposta seller da userId
             listing.setSeller(userId.toString());
@@ -190,6 +196,9 @@ public class ListingController {
         dto.setLanguage(listing.getCard() != null ? listing.getCard().getLanguage() : null);
         dto.setFranchise(listing.getCard() != null ? listing.getCard().getFranchise() : null);
         dto.setAcceptTrades(listing.isAcceptTrades());
+        dto.setQuantity(listing.getQuantity());
+        dto.setOriginalPrice(listing.getOriginalPrice());
+        dto.setSellerDeclarations(listing.getSellerDeclarations());
         
         // Calcola convertedPrice e convertedCurrency
         if (listing.getPrice() != null && listing.getCurrency() != null) {

@@ -25,10 +25,29 @@ public class Listing {
     private String seller;
     
     /**
+     * 📦 Quantità disponibile per la vendita (obbligatoria, default 1)
+     */
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity = 1;
+    
+    /**
+     * 💰 Prezzo originale/acquisto (opzionale)
+     */
+    @Column(name = "original_price")
+    private BigDecimal originalPrice;
+    
+    /**
      * 🔄 Indica se questa vendita accetta scambi
      */
     @Column(name = "accept_trades", nullable = false)
     private boolean acceptTrades = false;
+    
+    /**
+     * 📋 Dichiarazioni del venditore (JSON)
+     * Struttura: { provenance, authenticity, dating, finalDeclaration }
+     */
+    @Column(name = "seller_declarations", columnDefinition = "jsonb")
+    private String sellerDeclarations;
 
     @ManyToOne
     @JoinColumn(name = "card_id")
@@ -61,4 +80,13 @@ public class Listing {
 
     public boolean isAcceptTrades() { return acceptTrades; }
     public void setAcceptTrades(boolean acceptTrades) { this.acceptTrades = acceptTrades; }
+
+    public String getSellerDeclarations() { return sellerDeclarations; }
+    public void setSellerDeclarations(String sellerDeclarations) { this.sellerDeclarations = sellerDeclarations; }
+
+    public Integer getQuantity() { return quantity; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+
+    public BigDecimal getOriginalPrice() { return originalPrice; }
+    public void setOriginalPrice(BigDecimal originalPrice) { this.originalPrice = originalPrice; }
 }

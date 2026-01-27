@@ -1,6 +1,8 @@
 package com.funkard.dto;
 
 import lombok.Data;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -19,6 +21,7 @@ public class CreateListingRequest {
     private String description;
     
     @NotNull(message = "Il prezzo è obbligatorio")
+    @DecimalMin(value = "0.01", message = "Il prezzo deve essere maggiore di zero")
     private BigDecimal price;
     
     /**
@@ -68,5 +71,31 @@ public class CreateListingRequest {
     private String customTcg; // Valore personalizzato se tcg = "Altro"
     private String customLanguage; // Valore personalizzato se language = "Altro"
     private String customFranchise; // Valore personalizzato se franchise = "Altro"
+    
+    /**
+     * 📋 Dichiarazioni del venditore (JSON string)
+     * Struttura: { provenance, authenticity, dating, finalDeclaration }
+     * Opzionale, nessuna validazione per ora
+     */
+    private String sellerDeclarations;
+    
+    /**
+     * 📦 Quantità disponibile per la vendita (obbligatoria)
+     */
+    @NotNull(message = "La quantità è obbligatoria")
+    @Min(value = 1, message = "La quantità deve essere almeno 1")
+    private Integer quantity;
+    
+    /**
+     * 💰 Prezzo originale/acquisto (opzionale)
+     * Se presente, deve essere >= 0
+     */
+    @DecimalMin(value = "0.00", message = "Il prezzo originale non può essere negativo")
+    private BigDecimal originalPrice;
+    
+    /**
+     * 🔄 Indica se questa vendita accetta scambi (opzionale)
+     */
+    private Boolean acceptTrades;
 }
 

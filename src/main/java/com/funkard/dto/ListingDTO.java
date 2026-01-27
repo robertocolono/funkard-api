@@ -1,6 +1,7 @@
 package com.funkard.dto;
 
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -64,4 +65,21 @@ public class ListingDTO {
      * 🔄 Indica se questa vendita accetta scambi
      */
     private Boolean acceptTrades;
+    
+    /**
+     * 📦 Quantità disponibile per la vendita
+     */
+    private Integer quantity;
+    
+    /**
+     * 💰 Prezzo originale/acquisto (opzionale)
+     */
+    private BigDecimal originalPrice;
+    
+    /**
+     * 📋 Dichiarazioni del venditore (JSON string)
+     * Struttura: { provenance, authenticity, dating, finalDeclaration }
+     * Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
+     */
+    private String sellerDeclarations;
 }

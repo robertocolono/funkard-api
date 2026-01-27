@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -365,6 +366,27 @@ public class ListingService {
      */
     @Transactional
     public Listing create(Listing listing, CreateListingRequest request, Long userId) {
+        // 💰 Valida price (obbligatorio e > 0)
+        if (request.getPrice() == null) {
+            throw new IllegalArgumentException("Il prezzo è obbligatorio");
+        }
+        if (request.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Il prezzo deve essere maggiore di zero");
+        }
+        
+        // 📦 Valida quantity (obbligatoria e >= 1)
+        if (request.getQuantity() == null) {
+            throw new IllegalArgumentException("La quantità è obbligatoria");
+        }
+        if (request.getQuantity() < 1) {
+            throw new IllegalArgumentException("La quantità deve essere almeno 1");
+        }
+        
+        // 💰 Valida originalPrice se presente (>= 0)
+        if (request.getOriginalPrice() != null && request.getOriginalPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Il prezzo originale non può essere negativo");
+        }
+        
         // 📂 Valida e crea Card con category
         if (request == null || request.getCategory() == null || request.getCategory().trim().isEmpty()) {
             throw new IllegalArgumentException("La categoria è obbligatoria");
