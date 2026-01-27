@@ -412,6 +412,13 @@ public class ListingService {
             log.debug("✅ Franchise impostato: {}", franchise);
         }
         
+        // 🌍 Imposta language se presente (opzionale, normalizzato con normalizeLanguageCode)
+        if (request.getLanguage() != null && !request.getLanguage().trim().isEmpty()) {
+            String normalizedLanguage = normalizeLanguageCode(request.getLanguage().trim().toUpperCase());
+            card.setLanguage(normalizedLanguage);
+            log.debug("✅ Language impostato: {}", normalizedLanguage);
+        }
+        
         Card savedCard = cardRepository.save(card);
         log.debug("✅ Card creata con category: {}", category);
         
