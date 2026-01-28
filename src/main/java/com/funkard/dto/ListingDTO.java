@@ -3,6 +3,7 @@ package com.funkard.dto;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 public class ListingDTO {
@@ -82,4 +83,10 @@ public class ListingDTO {
      * Campo nullable. Valore arriva direttamente dal database senza trasformazioni.
      */
     private String sellerDeclarations;
+    
+    /**
+     * 📸 URL immagini strutturate (Map slot -> URL)
+     * Struttura: { "front": "url", "back": "url", "corner-top-left": "url", ... }
+     */
+    private Map<String, String> images;
 }

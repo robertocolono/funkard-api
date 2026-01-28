@@ -11,8 +11,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +25,28 @@ public class ListingService {
     private final ListingRepository repo;
     private final CardRepository cardRepository;
     private final PendingValueService pendingValueService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    // Slot validi per immagini Listing
+    private static final Set<String> VALID_IMAGE_SLOTS = Set.of(
+        "front",
+        "back",
+        "corner-top-left",
+        "corner-top-right",
+        "corner-bottom-left",
+        "corner-bottom-right",
+        "edge-left",
+        "edge-right"
+    );
+    
+    // MIME types validi
+    private static final Set<String> VALID_MIME_TYPES = Set.of(
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    );
+    
+    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
     public List<Listing> getAll() {
         return repo.findAll();
@@ -612,6 +637,128 @@ public class ListingService {
                 // Se non matcha nessun mapping, restituisce il valore uppercase così com'è
                 // (per retrocompatibilità con valori già normalizzati o custom)
                 return normalized;
+        }
+    }
+    
+    /**
+     * 📸 Valida slot immagine
+     */
+    public void validateImageSlot(String slot) {
+        if (slot == null || !VALID_IMAGE_SLOTS.contains(slot)) {
+            throw new IllegalArgumentException("Slot immagine non valido: " + slot + 
+                ". Slot validi: " + String.join(", ", VALID_IMAGE_SLOTS));
+        }
+    }
+    
+    /**
+     * 📸 Valida file immagine
+     */
+    public void validateImageFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File immagine non può essere vuoto");
+        }
+        
+        // Validazione MIME type
+        String contentType = file.getContentType();
+        if (contentType == null || !VALID_MIME_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Tipo file non supportato: " + contentType + 
+                ". Tipi supportati: image/jpeg, image/png, image/webp");
+        }
+        
+        // Validazione dimensione
+        if (file.getSize() > MAX_IMAGE_SIZE) {
+            throw new IllegalArgumentException("File troppo grande: " + file.getSize() + 
+                " bytes. Massimo consentito: " + MAX_IMAGE_SIZE + " bytes (10MB)");
+        }
+    }
+    
+    /**
+     * 📸 Deserializza JSONB images a Map
+     */
+    private Map<String, String> deserializeImages(String imagesJson) {
+        if (imagesJson == null || imagesJson.trim().isEmpty()) {
+            return new HashMap<>();
+        }
+        try {
+            return objectMapper.readValue(imagesJson, new TypeReference<Map<String, String>>() {});
+        } catch (Exception e) {
+            log.warn("Errore deserializzazione images JSON: {}", e.getMessage());
+            return new HashMap<>();
+        }
+    }
+    
+    /**
+     * 📸 Serializza Map a JSONB images
+     */
+    private String serializeImages(Map<String, String> imagesMap) {
+        if (imagesMap == null || imagesMap.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(imagesMap);
+        } catch (Exception e) {
+            log.error("Errore serializzazione images JSON: {}", e.getMessage());
+            throw new RuntimeException("Errore serializzazione images", e);
+        }
+    }
+    
+    /**
+     * 📸 Aggiorna immagine in Listing
+     */
+    @Transactional
+    public void updateListingImage(Long listingId, String slot, String url) {
+        Listing listing = repo.findById(listingId)
+            .orElseThrow(() -> new IllegalArgumentException("Listing non trovato: " + listingId));
+        
+        Map<String, String> images = deserializeImages(listing.getImages());
+        
+        // Verifica max 8 immagini totali
+        if (!images.containsKey(slot) && images.size() >= 8) {
+            throw new IllegalArgumentException("Massimo 8 immagini consentite per listing");
+        }
+        
+        images.put(slot, url);
+        listing.setImages(serializeImages(images));
+        repo.save(listing);
+        log.debug("✅ Immagine aggiornata per listing {}: slot={}, url={}", listingId, slot, url);
+    }
+    
+    /**
+     * 📸 Rimuove immagine da Listing
+     */
+    @Transactional
+    public void removeListingImage(Long listingId, String slot) {
+        Listing listing = repo.findById(listingId)
+            .orElseThrow(() -> new IllegalArgumentException("Listing non trovato: " + listingId));
+        
+        Map<String, String> images = deserializeImages(listing.getImages());
+        images.remove(slot);
+        listing.setImages(serializeImages(images));
+        repo.save(listing);
+        log.debug("✅ Immagine rimossa per listing {}: slot={}", listingId, slot);
+    }
+    
+    /**
+     * 📸 Ottiene immagini di un Listing
+     */
+    public Map<String, String> getListingImages(Long listingId) {
+        Listing listing = repo.findById(listingId)
+            .orElseThrow(() -> new IllegalArgumentException("Listing non trovato: " + listingId));
+        return deserializeImages(listing.getImages());
+    }
+    
+    /**
+     * 🗑️ Elimina tutte le immagini di un Listing (cleanup)
+     */
+    @Transactional
+    public void deleteListingImages(Long listingId) {
+        // Elimina file da R2 (chiamata esterna, non transazionale)
+        // Il cleanup R2 viene chiamato dal controller o da scheduled task
+        Listing listing = repo.findById(listingId).orElse(null);
+        if (listing != null) {
+            listing.setImages(null);
+            repo.save(listing);
+            log.debug("✅ Immagini rimosse da DB per listing {}", listingId);
         }
     }
 }

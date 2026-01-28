@@ -49,6 +49,13 @@ public class Listing {
     @Column(name = "seller_declarations", columnDefinition = "jsonb")
     private String sellerDeclarations;
 
+    /**
+     * 📸 URL immagini strutturate (JSONB)
+     * Struttura: { "front": "url", "back": "url", "corner-top-left": "url", ... }
+     */
+    @Column(name = "images", columnDefinition = "jsonb")
+    private String images;
+
     @ManyToOne
     @JoinColumn(name = "card_id")
     private Card card;
@@ -89,4 +96,7 @@ public class Listing {
 
     public BigDecimal getOriginalPrice() { return originalPrice; }
     public void setOriginalPrice(BigDecimal originalPrice) { this.originalPrice = originalPrice; }
+
+    public String getImages() { return images; }
+    public void setImages(String images) { this.images = images; }
 }

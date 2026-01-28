@@ -5,8 +5,13 @@ import com.funkard.dto.CreateListingRequest;
 import com.funkard.dto.ListingDTO;
 import com.funkard.model.Listing;
 import com.funkard.model.User;
+import com.funkard.repository.ListingRepository;
 import com.funkard.repository.UserRepository;
 import com.funkard.service.ListingService;
+import com.funkard.service.R2Service;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -17,8 +22,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -39,8 +43,11 @@ import java.util.stream.Collectors;
 public class ListingController {
 
     private final ListingService service;
+    private final ListingRepository listingRepository;
     private final UserRepository userRepository;
     private final CurrencyConversionService currencyConversionService;
+    private final R2Service r2Service;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @GetMapping
     @Cacheable(value = "marketplace:filters", 
@@ -200,6 +207,22 @@ public class ListingController {
         dto.setOriginalPrice(listing.getOriginalPrice());
         dto.setSellerDeclarations(listing.getSellerDeclarations());
         
+        // 📸 Mappa immagini (deserializza JSONB a Map)
+        if (listing.getImages() != null && !listing.getImages().trim().isEmpty()) {
+            try {
+                Map<String, String> imagesMap = objectMapper.readValue(
+                    listing.getImages(), 
+                    new TypeReference<Map<String, String>>() {}
+                );
+                dto.setImages(imagesMap);
+            } catch (Exception e) {
+                log.warn("Errore deserializzazione images per listing {}: {}", listing.getId(), e.getMessage());
+                dto.setImages(new HashMap<>());
+            }
+        } else {
+            dto.setImages(new HashMap<>());
+        }
+        
         // Calcola convertedPrice e convertedCurrency
         if (listing.getPrice() != null && listing.getCurrency() != null) {
             try {
@@ -290,5 +313,150 @@ public class ListingController {
             .distinct()
             .sorted()
             .collect(Collectors.joining(","));
+    }
+    
+    /**
+     * 🔍 Verifica ownership listing
+     */
+    private boolean isListingOwner(Long listingId, Long userId) {
+        Listing listing = listingRepository.findById(listingId).orElse(null);
+        if (listing == null) {
+            return false;
+        }
+        return listing.getSeller() != null && listing.getSeller().equals(userId.toString());
+    }
+    
+    /**
+     * 📸 POST /api/listings/{listingId}/images/{slot}
+     * Upload immagine singola per listing
+     */
+    @PostMapping("/{listingId}/images/{slot}")
+    public ResponseEntity<?> uploadImage(
+            @PathVariable Long listingId,
+            @PathVariable String slot,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        try {
+            Long userId = getUserIdFromAuthentication(authentication);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            // Verifica ownership
+            if (!isListingOwner(listingId, userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Non hai i permessi per modificare questo listing"));
+            }
+            
+            // Verifica listing esiste
+            Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Listing non trovato"));
+            
+            // Validazione slot
+            service.validateImageSlot(slot);
+            
+            // Validazione file
+            service.validateImageFile(file);
+            
+            // Upload su R2
+            String url = r2Service.uploadListingImage(file, listingId, slot);
+            
+            // Aggiorna DB
+            service.updateListingImage(listingId, slot, url);
+            
+            return ResponseEntity.ok(Map.of("url", url, "slot", slot));
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Validazione fallita durante upload immagine: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Errore durante upload immagine: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Errore interno del server"));
+        }
+    }
+    
+    /**
+     * 🗑️ DELETE /api/listings/{listingId}/images/{slot}
+     * Elimina immagine singola per listing
+     */
+    @DeleteMapping("/{listingId}/images/{slot}")
+    public ResponseEntity<?> deleteImage(
+            @PathVariable Long listingId,
+            @PathVariable String slot,
+            Authentication authentication) {
+        
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        try {
+            Long userId = getUserIdFromAuthentication(authentication);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            // Verifica ownership
+            if (!isListingOwner(listingId, userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Non hai i permessi per modificare questo listing"));
+            }
+            
+            // Validazione slot
+            service.validateImageSlot(slot);
+            
+            // Elimina da R2
+            r2Service.deleteListingImage(listingId, slot);
+            
+            // Rimuovi da DB
+            service.removeListingImage(listingId, slot);
+            
+            return ResponseEntity.noContent().build();
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Validazione fallita durante eliminazione immagine: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Errore durante eliminazione immagine: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Errore interno del server"));
+        }
+    }
+    
+    /**
+     * 📋 GET /api/listings/{listingId}/images
+     * Lista immagini di un listing
+     */
+    @GetMapping("/{listingId}/images")
+    public ResponseEntity<?> getImages(
+            @PathVariable Long listingId,
+            Authentication authentication) {
+        
+        try {
+            // Verifica listing esiste
+            listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Listing non trovato"));
+            
+            // Ottieni immagini
+            Map<String, String> images = service.getListingImages(listingId);
+            
+            return ResponseEntity.ok(images);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Listing non trovato: {}", listingId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Errore durante recupero immagini: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Errore interno del server"));
+        }
     }
 }
